@@ -1,5 +1,6 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+import sys
 
 # Your Spotify API credentials
 client_id = '0f57cff8a23d487a88ac66fbc89e1ee3'
@@ -13,75 +14,92 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
                                                redirect_uri=redirect_uri,
                                                scope=scope))
 
+def print_progress(iteration, total, prefix='', suffix='', decimals=1, bar_length=100):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        bar_length  - Optional  : character length of bar (Int)
+    """
+    format_str = "{0:." + str(decimals) + "f}"
+    percent = format_str.format(100 * (iteration / float(total)))
+    filled_length = int(round(bar_length * iteration / float(total)))
+    bar = '#' * filled_length + '-' * (bar_length - filled_length)
+    sys.stdout.write('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix)),
+    sys.stdout.flush()
+    if iteration == total:
+        sys.stdout.write('\n')
+        sys.stdout.flush()
+
 def get_user_playlists():
-    """Fetches all user-created playlists, handling pagination."""
     playlists = []
     response = sp.current_user_playlists(limit=50)
     while response:
         playlists.extend(response['items'])
-        response = sp.next(response)
+        response = sp.next(response) if response['next'] else None
     return playlists
 
 def get_playlist_tracks(playlist_id):
-    """Fetches all tracks from a given playlist, along with their added_at timestamp, handling pagination."""
     tracks = []
-    results = sp.playlist_tracks(playlist_id, fields="items(added_at,track.id),next", limit=100)
+    results = sp.playlist_tracks(playlist_id, fields="items(track.id),next", limit=100)
     while results:
-        tracks.extend([(item['added_at'], item['track']['id']) for item in results['items'] if item['track'] and item['track']['id']])
-        results = sp.next(results)
+        tracks.extend([item['track']['id'] for item in results['items'] if item['track'] and item['track']['id']])
+        results = sp.next(results) if results['next'] else None
     return tracks
 
 def get_liked_songs():
-    """Fetches all liked (saved) songs, along with their added_at timestamp, handling pagination."""
     liked_songs = []
     results = sp.current_user_saved_tracks(limit=50)
     while results:
-        liked_songs.extend([(item['added_at'], item['track']['id']) for item in results['items'] if item['track']])
-        results = sp.next(results)
+        liked_songs.extend([item['track']['id'] for item in results['items'] if item['track']])
+        results = sp.next(results) if results['next'] else None
     return liked_songs
+
+def get_existing_playlist_tracks(playlist_id):
+    tracks = []
+    results = sp.playlist_tracks(playlist_id, fields="items(track.id),next", limit=100)
+    while results:
+        tracks.extend([item['track']['id'] for item in results['items'] if item['track']])
+        results = sp.next(results) if results['next'] else None
+    return tracks
 
 def add_tracks_to_existing_playlist(playlist_name):
     user_id = sp.me()['id']
-    all_tracks = []
+    all_tracks = set()
 
-    # Include liked songs with their added_at timestamp
-    all_tracks.extend(get_liked_songs())
-
-    # Include tracks from user's playlists with their added_at timestamp
-    for playlist in get_user_playlists():
-        if playlist['owner']['id'] == user_id:  # Ensure only user-owned playlists are considered
-            all_tracks.extend(get_playlist_tracks(playlist['id']))
-
-    # Remove duplicates but maintain order by using a dictionary
-    unique_tracks_ordered = dict()
-    for added_at, track_id in all_tracks:
-        if track_id not in unique_tracks_ordered:
-            unique_tracks_ordered[track_id] = added_at
-
-    # Sort tracks by their original added_at timestamp in descending order (newer first)
-    sorted_tracks = sorted(unique_tracks_ordered.items(), key=lambda x: x[1], reverse=True)
-
-    # Find the existing playlist by name
-    existing_playlist_id = None
     playlists = get_user_playlists()
+    print_progress(0, len(playlists), prefix='Progress:', suffix='Complete', bar_length=50)
+    for i, playlist in enumerate(playlists, start=1):
+        if playlist['owner']['id'] == user_id:
+            all_tracks.update(get_playlist_tracks(playlist['id']))
+        print_progress(i, len(playlists), prefix='Fetching Playlists:', suffix='Complete', bar_length=50)
+
+    liked_songs = get_liked_songs()
+    all_tracks.update(liked_songs)
+
+    existing_playlist_id = None
     for playlist in playlists:
         if playlist['name'] == playlist_name and playlist['owner']['id'] == user_id:
             existing_playlist_id = playlist['id']
             break
 
     if not existing_playlist_id:
-        print(f"No existing playlist named '{playlist_name}' found.")
+        print("\nNo existing playlist named '{}' found.".format(playlist_name))
         return
 
-    # Extract just the track IDs, now sorted by their original added_at timestamp in reverse order
-    sorted_track_ids = [track_id for track_id, _ in sorted_tracks]
+    existing_tracks = set(get_existing_playlist_tracks(existing_playlist_id))
+    tracks_to_add = list(all_tracks - existing_tracks)
 
-    # Since the Spotify API has a limit on the number of tracks you can add in a single request, chunk the list
-    for i in range(0, len(sorted_track_ids), 100):
-        chunk = sorted_track_ids[i:i+100]
+    for i in range(0, len(tracks_to_add), 100):
+        chunk = tracks_to_add[i:i+100]
         sp.playlist_add_items(existing_playlist_id, chunk)
+        print_progress(i + len(chunk), len(tracks_to_add), prefix='Updating Playlist:', suffix='Complete', bar_length=50)
 
-    print(f"Added {len(sorted_track_ids)} unique tracks to the playlist '{playlist_name}' in reverse order (newer first).")
+    print("\nSuccessfully added {} unique tracks to the playlist '{}'.".format(len(tracks_to_add), playlist_name))
 
 if __name__ == '__main__':
     playlist_name = 'vaulted_'  # Replace with your actual playlist name
