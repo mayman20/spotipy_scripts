@@ -1,0 +1,32 @@
+<!-- public/cashier.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cashier Dashboard</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    socket.on('updateDrivers', (drivers) => {
+      const driversList = document.getElementById('drivers');
+      driversList.innerHTML = '';
+      drivers.forEach(driver => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${driver.username}: (${driver.latitude}, ${driver.longitude}) at ${new Date(driver.timestamp).toLocaleTimeString()}`;
+        driversList.appendChild(listItem);
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1>Cashier Dashboard</h1>
+  <form action="/auth/logout" method="POST">
+    <button type="submit">Logout</button>
+  </form>
+  <h2>Active Drivers:</h2>
+  <ul id="drivers">
+    <!-- Real-time driver locations will be populated here -->
+  </ul>
+</body>
+</html>
