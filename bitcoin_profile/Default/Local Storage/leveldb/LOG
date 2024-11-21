@@ -1,3 +1,2 @@
-2024/11/21-16:54:00.773 623c Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\bitcoin_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2024/11/21-16:54:00.790 623c Recovering log #11
-2024/11/21-16:54:00.795 623c Reusing old log C:\Users\username\Documents\spotipy_scripts\bitcoin_profile\Default\Local Storage\leveldb/000011.log 
+2024/11/21-17:06:56.651 7ab4 Creating DB C:\Users\username\Documents\spotipy_scripts\bitcoin_profile\Default\Local Storage\leveldb since it was missing.
+2024/11/21-17:06:59.048 7ab4 Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\bitcoin_profile\Default\Local Storage\leveldb/MANIFEST-000001

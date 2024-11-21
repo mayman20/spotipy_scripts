@@ -1,6 +1,0 @@
-2024/11/21-08:59:30.370 362c Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2024/11/21-08:59:30.381 362c Recovering log #11
-2024/11/21-08:59:30.384 362c Reusing old log C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Local Storage\leveldb/000011.log 
-2024/11/21-09:00:41.816 665c Level-0 table #14: started
-2024/11/21-09:00:41.860 665c Level-0 table #14: 55890 bytes OK
-2024/11/21-09:00:42.086 665c Delete type=0 #11

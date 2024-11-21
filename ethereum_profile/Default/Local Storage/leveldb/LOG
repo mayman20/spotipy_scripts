@@ -1,3 +1,2 @@
-2024/11/21-16:54:04.849 4274 Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2024/11/21-16:54:04.858 4274 Recovering log #13
-2024/11/21-16:54:04.863 4274 Reusing old log C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Local Storage\leveldb/000013.log 
+2024/11/21-17:07:04.142 45e4 Creating DB C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Local Storage\leveldb since it was missing.
+2024/11/21-17:07:06.645 45e4 Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Local Storage\leveldb/MANIFEST-000001

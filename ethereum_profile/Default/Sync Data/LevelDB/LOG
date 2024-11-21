@@ -1,3 +1,2 @@
-2024/11/21-16:54:04.189 6d84 Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Sync Data\LevelDB/MANIFEST-000001
-2024/11/21-16:54:04.205 6d84 Recovering log #3
-2024/11/21-16:54:04.205 6d84 Reusing old log C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Sync Data\LevelDB/000003.log 
+2024/11/21-17:06:59.529 3f20 Creating DB C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Sync Data\LevelDB since it was missing.
+2024/11/21-17:07:01.431 3f20 Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\Sync Data\LevelDB/MANIFEST-000001

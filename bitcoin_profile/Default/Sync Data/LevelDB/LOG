@@ -1,3 +1,2 @@
-2024/11/21-16:54:00.444 7f54 Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\bitcoin_profile\Default\Sync Data\LevelDB/MANIFEST-000001
-2024/11/21-16:54:00.445 7f54 Recovering log #3
-2024/11/21-16:54:00.446 7f54 Reusing old log C:\Users\username\Documents\spotipy_scripts\bitcoin_profile\Default\Sync Data\LevelDB/000003.log 
+2024/11/21-17:06:54.593 12b8 Creating DB C:\Users\username\Documents\spotipy_scripts\bitcoin_profile\Default\Sync Data\LevelDB since it was missing.
+2024/11/21-17:06:55.888 12b8 Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\bitcoin_profile\Default\Sync Data\LevelDB/MANIFEST-000001

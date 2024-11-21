@@ -1,3 +1,2 @@
-2024/11/21-16:54:04.719 4d94 Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\shared_proto_db\metadata/MANIFEST-000001
-2024/11/21-16:54:04.720 4d94 Recovering log #3
-2024/11/21-16:54:04.720 4d94 Reusing old log C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\shared_proto_db\metadata/000003.log 
+2024/11/21-17:07:02.755 3e34 Creating DB C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\shared_proto_db\metadata since it was missing.
+2024/11/21-17:07:03.907 3e34 Reusing MANIFEST C:\Users\username\Documents\spotipy_scripts\ethereum_profile\Default\shared_proto_db\metadata/MANIFEST-000001
