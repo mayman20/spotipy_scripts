@@ -1,5 +1,8 @@
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
+import spotipy  # type: ignore
+from spotipy.oauth2 import SpotifyOAuth  # type: ignore
+import sys
+import time
+import itertools
 
 # Your Spotify API credentials
 client_id = '0f57cff8a23d487a88ac66fbc89e1ee3'
@@ -13,80 +16,140 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
                                                redirect_uri=redirect_uri,
                                                scope=scope))
 
+class ProgressBar:
+    """
+    A class to display a progress bar with an optional spinner.
+    """
+    spinner_cycle = itertools.cycle(['|', '/', '-', '\\'])
+
+    def __init__(self, total, prefix='', suffix='', decimals=1, bar_length=50, spinner=True):
+        """
+        Initializes the ProgressBar.
+
+        :param total: Total iterations (int)
+        :param prefix: Prefix string (str)
+        :param suffix: Suffix string (str)
+        :param decimals: Number of decimals in percent complete (int)
+        :param bar_length: Length of the progress bar (int)
+        :param spinner: Whether to display a spinner (bool)
+        """
+        self.total = total
+        self.prefix = prefix
+        self.suffix = suffix
+        self.decimals = decimals
+        self.bar_length = bar_length
+        self.spinner = spinner
+        self.iteration = 0
+
+    def update(self, iteration=None):
+        """
+        Updates the progress bar.
+
+        :param iteration: Current iteration (int). If None, increments by 1.
+        """
+        if iteration is not None:
+            self.iteration = iteration
+        else:
+            self.iteration += 1
+
+        percent = f"{100 * (self.iteration / float(self.total)):.{self.decimals}f}"
+        filled_length = int(round(self.bar_length * self.iteration / float(self.total)))
+        bar = '#' * filled_length + '-' * (self.bar_length - filled_length)
+
+        spinner_char = next(self.spinner_cycle) if self.spinner else ''
+
+        # \r returns the cursor to the beginning of the line
+        sys.stdout.write(f'\r{self.prefix} |{bar}| {percent}% {self.suffix} {spinner_char}')
+        sys.stdout.flush()
+
+        if self.iteration >= self.total:
+            sys.stdout.write('\n')
+            sys.stdout.flush()
+
 def get_user_playlists():
-    """Fetch all playlists created by the user, handling pagination."""
     playlists = []
     response = sp.current_user_playlists(limit=50)
-    playlists.extend(response['items'])
-    
-    while response['next']:
-        response = sp.next(response)
+    while response:
         playlists.extend(response['items'])
-        
-    return [playlist for playlist in playlists if playlist['owner']['id'] == sp.me()['id']]
+        response = sp.next(response) if response['next'] else None
+    return playlists
 
 def get_playlist_tracks(playlist_id):
-    """Fetch all tracks from a given playlist, handling pagination."""
     tracks = []
-    results = sp.playlist_tracks(playlist_id, limit=100)
-    tracks.extend(results['items'])
-    
-    while results['next']:
-        results = sp.next(results)
-        tracks.extend(results['items'])
-        
-    return [item['track']['id'] for item in tracks if item['track'] and item['track']['id']]
+    results = sp.playlist_tracks(playlist_id, fields="items(track.id),next", limit=100)
+    while results:
+        tracks.extend([item['track']['id'] for item in results['items'] if item['track'] and item['track']['id']])
+        results = sp.next(results) if results['next'] else None
+    return tracks
 
 def get_liked_songs():
-    """Fetch all liked (saved) songs of the user, handling pagination."""
     liked_songs = []
     results = sp.current_user_saved_tracks(limit=50)
-    liked_songs.extend(results['items'])
-    
-    while results['next']:
-        results = sp.next(results)
-        liked_songs.extend(results['items'])
-        
-    return [item['track']['id'] for item in liked_songs if item['track']]
+    while results:
+        liked_songs.extend([item['track']['id'] for item in results['items'] if item['track']])
+        results = sp.next(results) if results['next'] else None
+    return liked_songs
+
+def get_existing_playlist_tracks(playlist_id):
+    tracks = []
+    results = sp.playlist_tracks(playlist_id, fields="items(track.id),next", limit=100)
+    while results:
+        tracks.extend([item['track']['id'] for item in results['items'] if item['track']])
+        results = sp.next(results) if results['next'] else None
+    return tracks
 
 def add_tracks_to_existing_playlist(playlist_name):
     user_id = sp.me()['id']
-    unique_tracks = set()
-    existing_playlist_tracks = set()
-    
-    # Include liked songs
-    unique_tracks.update(get_liked_songs())
-    
-    # Include tracks from user's playlists
-    for playlist in get_user_playlists():
-        unique_tracks.update(get_playlist_tracks(playlist['id']))
-    
-    existing_playlist_id = None
+    all_tracks = set()
+
+    # Fetch user playlists
     playlists = get_user_playlists()
+    total_playlists = len(playlists)
+    fetch_pb = ProgressBar(total=total_playlists, prefix='Fetching Playlists:', suffix='Complete', bar_length=50)
+    fetch_pb.update(0)  # Initialize progress bar
+    for i, playlist in enumerate(playlists, start=1):
+        if playlist['owner']['id'] == user_id:
+            all_tracks.update(get_playlist_tracks(playlist['id']))
+        fetch_pb.update(i)
+
+    # Fetch liked songs
+    print("Fetching Liked Songs:")
+    liked_songs = get_liked_songs()
+    all_tracks.update(liked_songs)
+    print(f"Fetched {len(liked_songs)} liked songs.")
+
+    # Find the existing playlist
+    existing_playlist_id = None
     for playlist in playlists:
-        if playlist['name'] == playlist_name:
+        if playlist['name'] == playlist_name and playlist['owner']['id'] == user_id:
             existing_playlist_id = playlist['id']
-            existing_playlist_tracks.update(get_playlist_tracks(existing_playlist_id))
             break
-    
+
     if not existing_playlist_id:
-        print(f"No existing playlist named '{playlist_name}' found.")
+        print(f"\nNo existing playlist named '{playlist_name}' found.")
         return
-    
-    tracks_to_add = list(unique_tracks - existing_playlist_tracks)
-    if not tracks_to_add:
-        print(f"All unique tracks are already in the playlist '{playlist_name}'.")
+
+    # Get existing tracks in the playlist
+    existing_tracks = set(get_existing_playlist_tracks(existing_playlist_id))
+    tracks_to_add = list(all_tracks - existing_tracks)
+    total_new_tracks = len(tracks_to_add)
+
+    if total_new_tracks == 0:
+        print(f"\nNo new tracks to add to the playlist '{playlist_name}'.")
         return
-    
-    tracks_chunked = [tracks_to_add[i:i + 100] for i in range(0, len(tracks_to_add), 100)]
-    for chunk in tracks_chunked:
-        try:
-            sp.playlist_add_items(existing_playlist_id, chunk)
-        except TypeError as e:
-            print(f"An error occurred while adding tracks: {e}")
-    
-    print(f"Added {len(tracks_to_add)} new unique tracks to the existing playlist '{playlist_name}'.")
+
+    # Add tracks to the playlist in chunks of 100
+    update_pb = ProgressBar(total=total_new_tracks, prefix='Updating Playlist:', suffix='Complete', bar_length=50)
+    update_pb.update(0)  # Initialize progress bar
+    for i in range(0, total_new_tracks, 100):
+        chunk = tracks_to_add[i:i+100]
+        sp.playlist_add_items(existing_playlist_id, chunk)
+        update_pb.update(min(i + len(chunk), total_new_tracks))
+        # Simulate work being done (remove this in production)
+        # time.sleep(0.1)
+
+    print(f"\nSuccessfully added {total_new_tracks} unique tracks to the playlist '{playlist_name}'.")
 
 if __name__ == '__main__':
-    playlist_name = 'vaulted'  # Replace with your actual playlist name
+    playlist_name = '_vaulted'  # Replace with your actual playlist name
     add_tracks_to_existing_playlist(playlist_name)
