@@ -1,16 +1,14 @@
-import spotipy  # type: ignore
-from spotipy.oauth2 import SpotifyOAuth  # type: ignore
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
 import sys
 import time
 import itertools
 
-# Your Spotify API credentials
 client_id = '0f57cff8a23d487a88ac66fbc89e1ee3'
 client_secret = 'd9ace617384f469a8fa5ad39f2f3b96e'
 redirect_uri = 'http://localhost/'
-scope = 'user-library-read playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative'
+scope = 'user-top-read user-library-read playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative'
 
-# Authenticate with Spotify
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
                                                client_secret=client_secret,
                                                redirect_uri=redirect_uri,
@@ -58,7 +56,6 @@ class ProgressBar:
 
         spinner_char = next(self.spinner_cycle) if self.spinner else ''
 
-        # \r returns the cursor to the beginning of the line
         sys.stdout.write(f'\r{self.prefix} |{bar}| {percent}% {self.suffix} {spinner_char}')
         sys.stdout.flush()
 
@@ -102,23 +99,20 @@ def add_tracks_to_existing_playlist(playlist_name):
     user_id = sp.me()['id']
     all_tracks = set()
 
-    # Fetch user playlists
     playlists = get_user_playlists()
     total_playlists = len(playlists)
     fetch_pb = ProgressBar(total=total_playlists, prefix='Fetching Playlists:', suffix='Complete', bar_length=50)
-    fetch_pb.update(0)  # Initialize progress bar
+    fetch_pb.update(0)
     for i, playlist in enumerate(playlists, start=1):
         if playlist['owner']['id'] == user_id:
             all_tracks.update(get_playlist_tracks(playlist['id']))
         fetch_pb.update(i)
 
-    # Fetch liked songs
     print("Fetching Liked Songs:")
     liked_songs = get_liked_songs()
     all_tracks.update(liked_songs)
     print(f"Fetched {len(liked_songs)} liked songs.")
 
-    # Find the existing playlist
     existing_playlist_id = None
     for playlist in playlists:
         if playlist['name'] == playlist_name and playlist['owner']['id'] == user_id:
@@ -129,7 +123,6 @@ def add_tracks_to_existing_playlist(playlist_name):
         print(f"\nNo existing playlist named '{playlist_name}' found.")
         return
 
-    # Get existing tracks in the playlist
     existing_tracks = set(get_existing_playlist_tracks(existing_playlist_id))
     tracks_to_add = list(all_tracks - existing_tracks)
     total_new_tracks = len(tracks_to_add)
@@ -138,18 +131,15 @@ def add_tracks_to_existing_playlist(playlist_name):
         print(f"\nNo new tracks to add to the playlist '{playlist_name}'.")
         return
 
-    # Add tracks to the playlist in chunks of 100
     update_pb = ProgressBar(total=total_new_tracks, prefix='Updating Playlist:', suffix='Complete', bar_length=50)
-    update_pb.update(0)  # Initialize progress bar
+    update_pb.update(0)
     for i in range(0, total_new_tracks, 100):
         chunk = tracks_to_add[i:i+100]
         sp.playlist_add_items(existing_playlist_id, chunk)
         update_pb.update(min(i + len(chunk), total_new_tracks))
-        # Simulate work being done (remove this in production)
-        # time.sleep(0.1)
 
     print(f"\nSuccessfully added {total_new_tracks} unique tracks to the playlist '{playlist_name}'.")
 
 if __name__ == '__main__':
-    playlist_name = '_vaulted'  # Replace with your actual playlist name
+    playlist_name = '_vaulted'
     add_tracks_to_existing_playlist(playlist_name)
