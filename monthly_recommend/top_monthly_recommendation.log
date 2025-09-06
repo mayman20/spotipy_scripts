@@ -1,0 +1,244 @@
+[2025-08-08 11:01:51,677] INFO - 🚀 Starting Top Monthly Recommendation (local model)
+[2025-08-08 11:01:51,677] INFO - 🔁 Loading local recommender data…
+[2025-08-08 11:01:51,677] ERROR - ❌ Failed to load recommender files: [Errno 2] No such file or directory: 'df_cleaned.pkl'
+[2025-08-08 11:09:47,655] INFO - 🚀 Starting Top Monthly Recommendation (local model)
+[2025-08-08 11:09:47,655] INFO - 🔁 Loading local recommender data…
+[2025-08-08 11:09:47,869] INFO - ✅ Recommender data loaded. Rows: 50
+[2025-08-08 11:09:47,869] INFO - User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+[2025-08-08 11:09:47,869] WARNING - Using 'localhost' as a redirect URI is being deprecated. Use a loopback IP address such as 127.0.0.1 to ensure your app remains functional.
+[2025-08-08 11:09:47,869] WARNING - Using `localhost` as redirect URI without a port. Specify a port (e.g. `localhost:8080`) to allow automatic retrieval of authentication code instead of having to copy and paste the URL your browser is redirected to.
+[2025-08-08 11:09:48,242] INFO - Opened https://accounts.spotify.com/authorize?client_id=0f57cff8a23d487a88ac66fbc89e1ee3&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%2F&scope=user-top-read+playlist-modify-private+playlist-modify-public in your browser
+[2025-08-08 11:09:53,817] INFO - 👤 Authenticated as: Joe May (22sdp7hcqje57feigouwzjgyq)
+[2025-08-08 11:09:54,406] INFO - 🎧 Got 50 top tracks (short_term)
+[2025-08-08 11:09:54,406] INFO - 🎯 [1/50] Seed: The Alan Parsons Project — I Wouldn't Want to Be Like You
+[2025-08-08 11:09:54,412] INFO - ✅ 3 local recs for 'I Wouldn't Want to Be Like You'
+[2025-08-08 11:09:54,772] INFO - ➕ Queued: The Alan Parsons Project — Eye In The Sky (spotify:track:2sIbHjfJ3nbMXNz4w03fWv)
+[2025-08-08 11:09:54,988] INFO - ➕ Queued: DJ Screw — Like Yesterday (Screwed) (spotify:track:7cW9ppsNXcgHlAeByGHjeI)
+[2025-08-08 11:09:55,204] INFO - ➕ Queued: 3Dcam — Unnanounced (spotify:track:5c6ajOkPH23j1AaddxdA7F)
+[2025-08-08 11:09:55,204] INFO - 🎯 [2/50] Seed: 3Dcam — Unnanounced
+[2025-08-08 11:09:55,205] INFO - ✅ 3 local recs for 'Unnanounced'
+[2025-08-08 11:09:55,436] INFO - ➕ Queued: The Alan Parsons Project — I Wouldn't Want to Be Like You (spotify:track:4sCCZW0ezEPAexAidFsoVm)
+[2025-08-08 11:09:55,730] INFO - ➕ Queued: Silverchair — Tomorrow (spotify:track:24tO365YW6lcZr1hN4Ukzj)
+[2025-08-08 11:09:56,028] INFO - ➕ Queued: Naked Eyes — When the Lights Go out - 2018 Remaster (spotify:track:6fyj12D82DuD0U7tVUMujZ)
+[2025-08-08 11:09:56,028] INFO - 🎯 [3/50] Seed: Silverchair — Tomorrow
+[2025-08-08 11:09:56,031] INFO - ✅ 3 local recs for 'Tomorrow'
+[2025-08-08 11:09:56,461] INFO - ➕ Queued: Nirvana — On A Plain - Remastered (spotify:track:5h0zcBlyYnRxTUQQTyBnam)
+[2025-08-08 11:09:56,745] INFO - ➕ Queued: The Police — Walking On The Moon (spotify:track:62uLNJgVZaFiEiKV4LpoYJ)
+[2025-08-08 11:09:56,745] INFO - 🎯 [4/50] Seed: Naked Eyes — When the Lights Go out - 2018 Remaster
+[2025-08-08 11:09:56,748] INFO - ✅ 3 local recs for 'When the Lights Go out - 2018 Remaster'
+[2025-08-08 11:09:56,953] INFO - ➕ Queued: Deftones — 976-EVIL (spotify:track:3hb4W4FUPjyWUbYY2Sfih5)
+[2025-08-08 11:09:57,259] INFO - ➕ Queued: Eagles — I Can't Tell You Why - 2013 Remaster (spotify:track:02BsTeJE4q5gWOTt58ur5U)
+[2025-08-08 11:09:57,498] INFO - ➕ Queued: Eagles — One of These Nights - 2013 Remaster (spotify:track:608xszaAxVh4m7NcKJiAbF)
+[2025-08-08 11:09:57,498] INFO - 🎯 [5/50] Seed: Ace — How Long
+[2025-08-08 11:09:57,501] INFO - ✅ 3 local recs for 'How Long'
+[2025-08-08 11:09:58,151] INFO - 🎯 [6/50] Seed: Fleetwood Mac — My Dream - 2013 Remaster
+[2025-08-08 11:09:58,153] INFO - ✅ 3 local recs for 'My Dream - 2013 Remaster'
+[2025-08-08 11:09:58,383] INFO - ➕ Queued: Chevelle — Comfortable Liar (spotify:track:412LyfktkgWKEn8kmKiyQe)
+[2025-08-08 11:09:58,849] INFO - ➕ Queued: Stereolab — The Flower Called Nowhere (spotify:track:7dmHNa6KpsyakWQsMOjHUx)
+[2025-08-08 11:09:58,849] INFO - 🎯 [7/50] Seed: The Alan Parsons Project — Eye In The Sky
+[2025-08-08 11:09:58,851] INFO - ✅ 3 local recs for 'Eye In The Sky'
+[2025-08-08 11:09:59,717] INFO - 🎯 [8/50] Seed: Chief Keef — Semi on Em
+[2025-08-08 11:09:59,718] INFO - ✅ 3 local recs for 'Semi on Em'
+[2025-08-08 11:09:59,943] INFO - ➕ Queued: Gucci Mane — Stoned (feat. Waka Flocka) (spotify:track:0bsAwd8BVMsNrtmvg1JqHu)
+[2025-08-08 11:10:00,399] INFO - 🎯 [9/50] Seed: Butthole Surfers — Pepper
+[2025-08-08 11:10:00,402] INFO - ✅ 3 local recs for 'Pepper'
+[2025-08-08 11:10:01,054] INFO - 🎯 [10/50] Seed: Charlie Ivan Band — Time Again
+[2025-08-08 11:10:01,057] INFO - ✅ 3 local recs for 'Time Again'
+[2025-08-08 11:10:01,711] INFO - 🎯 [11/50] Seed: Waka Flocka Flame — Ballin Out
+[2025-08-08 11:10:01,713] INFO - ✅ 3 local recs for 'Ballin Out'
+[2025-08-08 11:10:02,582] INFO - 🎯 [12/50] Seed: C418 — Dreiton
+[2025-08-08 11:10:02,584] INFO - ✅ 3 local recs for 'Dreiton'
+[2025-08-08 11:10:03,282] INFO - 🎯 [13/50] Seed: David Bowie — Breaking Glass - 2017 Remaster
+[2025-08-08 11:10:03,285] INFO - ✅ 3 local recs for 'Breaking Glass - 2017 Remaster'
+[2025-08-08 11:10:04,006] INFO - ➕ Queued: Fleetwood Mac — My Dream - 2013 Remaster (spotify:track:3RdZNq9Rt230mfhjHkFwcx)
+[2025-08-08 11:10:04,006] INFO - 🎯 [14/50] Seed: Sade — Hang on to Your Love
+[2025-08-08 11:10:04,009] INFO - ✅ 3 local recs for 'Hang on to Your Love'
+[2025-08-08 11:10:04,324] INFO - ➕ Queued: Sade — Love Is Stronger Than Pride (spotify:track:5Qrcxc2YPomtX6UB0bwNaf)
+[2025-08-08 11:10:04,631] INFO - ➕ Queued: Sade — Keep Looking (spotify:track:0Q97fST0xHWAEahe28rMrb)
+[2025-08-08 11:10:04,849] INFO - ➕ Queued: Sade — Clean Heart (spotify:track:10TTcq5sPRxx1hq2lQ04CI)
+[2025-08-08 11:10:04,849] INFO - 🎯 [15/50] Seed: Eddy Arnold — But for Love
+[2025-08-08 11:10:04,850] INFO - ✅ 3 local recs for 'But for Love'
+[2025-08-08 11:10:05,069] INFO - ➕ Queued: Sade — Hang on to Your Love (spotify:track:6KIS5YIZAyeiFNx1aE1OhY)
+[2025-08-08 11:10:05,467] INFO - 🎯 [16/50] Seed: Sade — Clean Heart
+[2025-08-08 11:10:05,470] INFO - ✅ 3 local recs for 'Clean Heart'
+[2025-08-08 11:10:06,245] INFO - 🎯 [17/50] Seed: Deftones — Rivière
+[2025-08-08 11:10:06,248] INFO - ✅ 3 local recs for 'Rivière'
+[2025-08-08 11:10:06,884] INFO - ➕ Queued: Neil Young — Speakin' Out - 2016 Remaster (spotify:track:4tUxMI86BkRUeZ30428JtE)
+[2025-08-08 11:10:07,166] INFO - 🎯 [18/50] Seed: Slum Village — Selfish
+[2025-08-08 11:10:07,168] INFO - ✅ 3 local recs for 'Selfish'
+[2025-08-08 11:10:07,809] INFO - 🎯 [19/50] Seed: La Chat — Don't Sang It
+[2025-08-08 11:10:07,810] INFO - ✅ 3 local recs for 'Don't Sang It'
+[2025-08-08 11:10:08,059] INFO - ➕ Queued: Title Fight — Murder Your Memory (spotify:track:1SRKTHfXZFp1ybmbWpIfEZ)
+[2025-08-08 11:10:08,497] INFO - 🎯 [20/50] Seed: Christy Essien Igbokwe — You Can't Change a Man
+[2025-08-08 11:10:08,500] INFO - ✅ 3 local recs for 'You Can't Change a Man'
+[2025-08-08 11:10:08,807] INFO - ➕ Queued: America — Tin Man (spotify:track:6JWlRd8ZFnXhCzg0mi3N5V)
+[2025-08-08 11:10:09,218] INFO - 🎯 [21/50] Seed: Chevelle — Comfortable Liar
+[2025-08-08 11:10:09,220] INFO - ✅ 3 local recs for 'Comfortable Liar'
+[2025-08-08 11:10:09,941] INFO - ➕ Queued: Ozzy Osbourne — Mama, I'm Coming Home (spotify:track:0S3gpZzlT9Hb7CCSV2owX7)
+[2025-08-08 11:10:09,941] INFO - 🎯 [22/50] Seed: Donna Summer — On The Radio
+[2025-08-08 11:10:09,944] INFO - ✅ 3 local recs for 'On The Radio'
+[2025-08-08 11:10:10,764] INFO - 🎯 [23/50] Seed: Staind — So Far Away
+[2025-08-08 11:10:10,765] INFO - ✅ 3 local recs for 'So Far Away'
+[2025-08-08 11:10:11,417] INFO - 🎯 [24/50] Seed: Sade — Keep Looking
+[2025-08-08 11:10:11,423] INFO - ✅ 3 local recs for 'Keep Looking'
+[2025-08-08 11:10:12,127] INFO - 🎯 [25/50] Seed: Daniel Vangarde — Le Tango Me Fait Pleurer
+[2025-08-08 11:10:12,128] INFO - ✅ 3 local recs for 'Le Tango Me Fait Pleurer'
+[2025-08-08 11:10:12,927] INFO - 🎯 [26/50] Seed: Talking Heads — Heaven - 2005 Remaster
+[2025-08-08 11:10:12,928] INFO - ✅ 3 local recs for 'Heaven - 2005 Remaster'
+[2025-08-08 11:10:13,629] INFO - ➕ Queued: David Bowie — Breaking Glass - 2017 Remaster (spotify:track:2xFq7wVYKmTHFUySyfv789)
+[2025-08-08 11:10:13,629] INFO - 🎯 [27/50] Seed: Paradisio — Bailando
+[2025-08-08 11:10:13,630] INFO - ✅ 3 local recs for 'Bailando'
+[2025-08-08 11:10:14,244] INFO - 🎯 [28/50] Seed: Title Fight — Murder Your Memory
+[2025-08-08 11:10:14,245] INFO - ✅ 3 local recs for 'Murder Your Memory'
+[2025-08-08 11:10:14,484] INFO - ➕ Queued: La Chat — Don't Sang It (spotify:track:4N8zHrZkTGqMPVNKaU5AVL)
+[2025-08-08 11:10:15,024] INFO - 🎯 [29/50] Seed: Jane's Addiction — Summertime Rolls
+[2025-08-08 11:10:15,025] INFO - ✅ 3 local recs for 'Summertime Rolls'
+[2025-08-08 11:10:15,774] INFO - 🎯 [30/50] Seed: The Police — Walking On The Moon
+[2025-08-08 11:10:15,775] INFO - ✅ 3 local recs for 'Walking On The Moon'
+[2025-08-08 11:10:16,266] INFO - ➕ Queued: Queen — Cool Cat - Remastered 2011 (spotify:track:6Re2AwZUVlgBng04BZTauW)
+[2025-08-08 11:10:16,615] INFO - 🎯 [31/50] Seed: Rainer Veil — FM2
+[2025-08-08 11:10:16,619] INFO - ✅ 3 local recs for 'FM2'
+[2025-08-08 11:10:17,332] INFO - 🎯 [32/50] Seed: 311 — I'll Be Here Awhile
+[2025-08-08 11:10:17,334] INFO - ✅ 3 local recs for 'I'll Be Here Awhile'
+[2025-08-08 11:10:18,092] INFO - 🎯 [33/50] Seed: The Beach Boys — Lonely Sea (Mono)
+[2025-08-08 11:10:18,094] INFO - ✅ 3 local recs for 'Lonely Sea (Mono)'
+[2025-08-08 11:10:18,897] INFO - 🎯 [34/50] Seed: Neil Young — Speakin' Out - 2016 Remaster
+[2025-08-08 11:10:18,899] INFO - ✅ 3 local recs for 'Speakin' Out - 2016 Remaster'
+[2025-08-08 11:10:19,120] INFO - ➕ Queued: Deftones — Rivière (spotify:track:1A6Y3Ntkk4oeQ9FUskNMkY)
+[2025-08-08 11:10:19,684] INFO - 🎯 [35/50] Seed: Queen — Cool Cat - Remastered 2011
+[2025-08-08 11:10:19,686] INFO - ✅ 3 local recs for 'Cool Cat - Remastered 2011'
+[2025-08-08 11:10:20,351] INFO - 🎯 [36/50] Seed: Player — Givin' It All
+[2025-08-08 11:10:20,352] INFO - ✅ 3 local recs for 'Givin' It All'
+[2025-08-08 11:10:21,141] INFO - 🎯 [37/50] Seed: Ozzy Osbourne — Mama, I'm Coming Home
+[2025-08-08 11:10:21,142] INFO - ✅ 3 local recs for 'Mama, I'm Coming Home'
+[2025-08-08 11:10:21,939] INFO - 🎯 [38/50] Seed: Gucci Mane — Stoned (feat. Waka Flocka)
+[2025-08-08 11:10:21,940] INFO - ✅ 3 local recs for 'Stoned (feat. Waka Flocka)'
+[2025-08-08 11:10:22,160] INFO - ➕ Queued: Waka Flocka Flame — Ballin Out (spotify:track:0WyeG1Xwy4KTwHDmInqxqA)
+[2025-08-08 11:10:22,521] INFO - ➕ Queued: Chief Keef — Semi on Em (spotify:track:7z87G3zVo34bqi32Q9PQeK)
+[2025-08-08 11:10:22,726] INFO - 🎯 [39/50] Seed: Alice In Chains — Shame In You
+[2025-08-08 11:10:22,729] INFO - ✅ 3 local recs for 'Shame In You'
+[2025-08-08 11:10:23,570] INFO - 🎯 [40/50] Seed: DJ Screw — Like Yesterday (Screwed)
+[2025-08-08 11:10:23,573] INFO - ✅ 3 local recs for 'Like Yesterday (Screwed)'
+[2025-08-08 11:10:24,223] INFO - 🎯 [41/50] Seed: The Who — Eminence Front
+[2025-08-08 11:10:24,225] INFO - ✅ 3 local recs for 'Eminence Front'
+[2025-08-08 11:10:24,881] INFO - 🎯 [42/50] Seed: Deftones — 976-EVIL
+[2025-08-08 11:10:24,883] INFO - ✅ 3 local recs for '976-EVIL'
+[2025-08-08 11:10:25,654] INFO - 🎯 [43/50] Seed: America — Tin Man
+[2025-08-08 11:10:25,657] INFO - ✅ 3 local recs for 'Tin Man'
+[2025-08-08 11:10:25,904] INFO - ➕ Queued: Christy Essien Igbokwe — You Can't Change a Man (spotify:track:5jO6agviIZnOFaaDoJnfkR)
+[2025-08-08 11:10:26,356] INFO - 🎯 [44/50] Seed: Rick Ross — Here I Am
+[2025-08-08 11:10:26,358] INFO - ✅ 3 local recs for 'Here I Am'
+[2025-08-08 11:10:26,976] INFO - 🎯 [45/50] Seed: Stereolab — The Flower Called Nowhere
+[2025-08-08 11:10:26,986] INFO - ✅ 3 local recs for 'The Flower Called Nowhere'
+[2025-08-08 11:10:27,772] INFO - 🎯 [46/50] Seed: Eagles — One of These Nights - 2013 Remaster
+[2025-08-08 11:10:27,776] INFO - ✅ 3 local recs for 'One of These Nights - 2013 Remaster'
+[2025-08-08 11:10:28,507] INFO - 🎯 [47/50] Seed: Eagles — I Can't Tell You Why - 2013 Remaster
+[2025-08-08 11:10:28,513] INFO - ✅ 3 local recs for 'I Can't Tell You Why - 2013 Remaster'
+[2025-08-08 11:10:28,960] INFO - ➕ Queued: Ace — How Long (spotify:track:6Wgst4P9SOnc6WGLtfTb1z)
+[2025-08-08 11:10:29,197] INFO - 🎯 [48/50] Seed: OJ Da Juiceman — Early Morning Trapping
+[2025-08-08 11:10:29,200] INFO - ✅ 3 local recs for 'Early Morning Trapping'
+[2025-08-08 11:10:29,841] INFO - 🎯 [49/50] Seed: Nirvana — On A Plain - Remastered
+[2025-08-08 11:10:29,842] INFO - ✅ 3 local recs for 'On A Plain - Remastered'
+[2025-08-08 11:10:30,549] INFO - 🎯 [50/50] Seed: Sade — Love Is Stronger Than Pride
+[2025-08-08 11:10:30,552] INFO - ✅ 3 local recs for 'Love Is Stronger Than Pride'
+[2025-08-08 11:10:32,074] INFO - 🆕 Created playlist: Top Monthly Recommendation (4jdPjMzj7LEd67pjmB52FX)
+[2025-08-08 11:10:32,247] INFO - ✅ Added 31 tracks to playlist.
+[2025-08-08 11:10:32,248] INFO - ✅ Created/updated playlist 'Top Monthly Recommendation' with 31 tracks.
+[2025-08-08 11:58:48,688] INFO - 🚀 Starting Top Monthly Recommendation (LOCAL model only)
+[2025-08-08 11:58:48,690] INFO - 🔁 Loading local recommender data…
+[2025-08-08 11:58:50,374] INFO - ✅ Local data ready. df rows: 50
+[2025-08-08 11:58:50,552] INFO - [INFO] Fetching saved tracks (library)…
+[2025-08-08 11:59:17,570] INFO - [INFO] Saved tracks loaded: 2693
+[2025-08-08 11:59:18,014] INFO - 🎧 Got 50 top tracks (short_term)
+[2025-08-08 11:59:18,014] INFO - [SEED] The Alan Parsons Project — I Wouldn't Want to Be Like You
+[2025-08-08 11:59:22,429] INFO -   → added 2 new tracks for this seed
+[2025-08-08 11:59:22,429] INFO - [SEED] 3Dcam — Unnanounced
+[2025-08-08 11:59:26,257] INFO -   → added 0 new tracks for this seed
+[2025-08-08 11:59:26,258] INFO - [SEED] Silverchair — Tomorrow
+[2025-08-08 11:59:29,995] INFO -   → added 2 new tracks for this seed
+[2025-08-08 11:59:29,996] INFO - [SEED] Naked Eyes — When the Lights Go out - 2018 Remaster
+[2025-08-08 11:59:34,002] INFO -   → added 1 new tracks for this seed
+[2025-08-08 11:59:34,004] INFO - [SEED] Ace — How Long
+[2025-08-08 11:59:38,320] INFO -   → added 0 new tracks for this seed
+[2025-08-08 11:59:38,320] INFO - [SEED] Fleetwood Mac — My Dream - 2013 Remaster
+[2025-08-08 11:59:42,097] INFO -   → added 0 new tracks for this seed
+[2025-08-08 11:59:42,098] INFO - [SEED] The Alan Parsons Project — Eye In The Sky
+[2025-08-08 11:59:45,575] INFO -   → added 0 new tracks for this seed
+[2025-08-08 11:59:45,575] INFO - [SEED] Chief Keef — Semi on Em
+[2025-08-08 11:59:49,320] INFO -   → added 1 new tracks for this seed
+[2025-08-08 11:59:49,322] INFO - [SEED] Butthole Surfers — Pepper
+[2025-08-08 11:59:53,176] INFO -   → added 0 new tracks for this seed
+[2025-08-08 11:59:53,176] INFO - [SEED] C418 — Dreiton
+[2025-08-08 11:59:56,855] INFO -   → added 0 new tracks for this seed
+[2025-08-08 11:59:56,855] INFO - [SEED] Charlie Ivan Band — Time Again
+[2025-08-08 12:00:00,820] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:00,821] INFO - [SEED] Waka Flocka Flame — Ballin Out
+[2025-08-08 12:00:05,098] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:05,099] INFO - [SEED] David Bowie — Breaking Glass - 2017 Remaster
+[2025-08-08 12:00:09,147] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:09,147] INFO - [SEED] Sade — Hang on to Your Love
+[2025-08-08 12:00:13,338] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:13,339] INFO - [SEED] Eddy Arnold — But for Love
+[2025-08-08 12:00:17,240] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:17,241] INFO - [SEED] Sade — Clean Heart
+[2025-08-08 12:00:21,201] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:21,203] INFO - [SEED] Deftones — Rivière
+[2025-08-08 12:00:25,016] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:25,017] INFO - [SEED] Slum Village — Selfish
+[2025-08-08 12:00:28,846] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:28,846] INFO - [SEED] La Chat — Don't Sang It
+[2025-08-08 12:00:32,598] INFO -   → added 1 new tracks for this seed
+[2025-08-08 12:00:32,599] INFO - [SEED] Christy Essien Igbokwe — You Can't Change a Man
+[2025-08-08 12:00:36,777] INFO -   → added 1 new tracks for this seed
+[2025-08-08 12:00:36,778] INFO - [SEED] Chevelle — Comfortable Liar
+[2025-08-08 12:00:40,740] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:40,740] INFO - [SEED] Donna Summer — On The Radio
+[2025-08-08 12:00:44,473] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:44,474] INFO - [SEED] Staind — So Far Away
+[2025-08-08 12:00:48,032] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:48,033] INFO - [SEED] Sade — Keep Looking
+[2025-08-08 12:00:51,783] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:51,784] INFO - [SEED] Daniel Vangarde — Le Tango Me Fait Pleurer
+[2025-08-08 12:00:55,403] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:55,404] INFO - [SEED] Talking Heads — Heaven - 2005 Remaster
+[2025-08-08 12:00:59,006] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:00:59,006] INFO - [SEED] Paradisio — Bailando
+[2025-08-08 12:01:03,187] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:03,187] INFO - [SEED] Title Fight — Murder Your Memory
+[2025-08-08 12:01:08,200] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:08,200] INFO - [SEED] Jane's Addiction — Summertime Rolls
+[2025-08-08 12:01:12,276] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:12,276] INFO - [SEED] The Police — Walking On The Moon
+[2025-08-08 12:01:16,258] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:16,258] INFO - [SEED] Rainer Veil — FM2
+[2025-08-08 12:01:20,451] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:20,456] INFO - [SEED] 311 — I'll Be Here Awhile
+[2025-08-08 12:01:24,153] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:24,153] INFO - [SEED] The Beach Boys — Lonely Sea (Mono)
+[2025-08-08 12:01:28,369] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:28,370] INFO - [SEED] Neil Young — Speakin' Out - 2016 Remaster
+[2025-08-08 12:01:32,502] INFO -   → added 1 new tracks for this seed
+[2025-08-08 12:01:32,503] INFO - [SEED] Queen — Cool Cat - Remastered 2011
+[2025-08-08 12:01:36,357] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:36,357] INFO - [SEED] Player — Givin' It All
+[2025-08-08 12:01:40,259] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:40,262] INFO - [SEED] Ozzy Osbourne — Mama, I'm Coming Home
+[2025-08-08 12:01:44,559] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:44,559] INFO - [SEED] Gucci Mane — Stoned (feat. Waka Flocka)
+[2025-08-08 12:01:48,520] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:48,521] INFO - [SEED] Alice In Chains — Shame In You
+[2025-08-08 12:01:52,560] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:52,561] INFO - [SEED] DJ Screw — Like Yesterday (Screwed)
+[2025-08-08 12:01:56,731] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:01:56,732] INFO - [SEED] The Who — Eminence Front
+[2025-08-08 12:02:00,622] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:02:00,623] INFO - [SEED] Deftones — 976-EVIL
+[2025-08-08 12:02:04,955] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:02:04,956] INFO - [SEED] America — Tin Man
+[2025-08-08 12:02:10,679] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:02:10,680] INFO - [SEED] Rick Ross — Here I Am
+[2025-08-08 12:02:14,855] INFO -   → added 0 new tracks for this seed
+[2025-08-08 12:02:14,856] INFO - [SEED] Stereolab — The Flower Called Nowhere
+[2025-08-08 12:02:44,171] INFO - 🚀 Starting Top Monthly Recommendation (LOCAL model only)
+[2025-08-08 12:02:44,172] INFO - 🔁 Loading local recommender data…
+[2025-08-08 12:02:44,374] INFO - ✅ Local data ready. df rows: 50

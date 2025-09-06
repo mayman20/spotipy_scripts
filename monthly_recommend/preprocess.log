@@ -1,0 +1,59 @@
+[2025-08-08 11:04:25,974] INFO - 🚀 Loading dataset: spotify_millsongdata.csv
+[2025-08-08 11:07:33,687] INFO - 🚀 Loading dataset: spotify_millsongdata.csv
+[2025-08-08 11:08:05,780] INFO - 🚀 Loading dataset: top_monthly_songs.csv
+[2025-08-08 11:09:35,841] INFO - 🚀 Loading dataset: top_monthly_songs.csv
+[2025-08-08 11:09:35,845] INFO - 🧹 Building metadata documents...
+[2025-08-08 11:09:35,846] INFO - 🔠 Vectorizing with TF-IDF (max_features=4000)…
+[2025-08-08 11:09:35,850] INFO - ✅ TF-IDF matrix shape: (50, 445)
+[2025-08-08 11:09:35,850] INFO - 📐 Computing cosine similarity…
+[2025-08-08 11:09:35,850] INFO - 💾 Saving artifacts…
+[2025-08-08 11:09:35,853] INFO - ✅ Done. Wrote df_cleaned.pkl, tfidf_matrix.pkl, cosine_sim.pkl
+[2025-08-08 11:31:41,656] INFO - 🚀 Loading dataset: top_monthly_songs.csv
+[2025-08-08 11:31:41,666] INFO - 🧹 Building metadata documents...
+[2025-08-08 11:31:41,669] INFO - 🔠 Vectorizing with TF-IDF (max_features=4000)…
+[2025-08-08 11:31:41,674] INFO - ✅ TF-IDF matrix shape: (50, 445)
+[2025-08-08 11:31:41,674] INFO - 📐 Computing cosine similarity…
+[2025-08-08 11:31:41,675] INFO - 💾 Saving artifacts…
+[2025-08-08 11:31:41,678] INFO - ✅ Done. Wrote df_cleaned.pkl, tfidf_matrix.pkl, cosine_sim.pkl
+[2025-08-08 11:47:13,485] INFO - 🚀 Loading dataset: top_monthly_songs.csv
+[2025-08-08 11:47:13,492] INFO - 🧹 Building metadata documents...
+[2025-08-08 11:47:13,494] INFO - 🔠 Vectorizing with TF-IDF (max_features=4000)…
+[2025-08-08 11:47:13,496] INFO - ✅ TF-IDF matrix shape: (50, 445)
+[2025-08-08 11:47:13,497] INFO - 📐 Computing cosine similarity…
+[2025-08-08 11:47:13,497] INFO - 💾 Saving artifacts…
+[2025-08-08 11:47:13,499] INFO - ✅ Done. Wrote df_cleaned.pkl, tfidf_matrix.pkl, cosine_sim.pkl
+[2025-08-08 11:48:00,125] INFO - 🚀 Loading dataset: top_monthly_songs.csv
+[2025-08-08 11:48:00,133] INFO - 🧹 Building metadata documents...
+[2025-08-08 11:48:00,134] INFO - 🔠 Vectorizing with TF-IDF (max_features=4000)…
+[2025-08-08 11:48:00,137] INFO - ✅ TF-IDF matrix shape: (50, 445)
+[2025-08-08 11:48:00,137] INFO - 📐 Computing cosine similarity…
+[2025-08-08 11:48:00,137] INFO - 💾 Saving artifacts…
+[2025-08-08 11:48:00,139] INFO - ✅ Done. Wrote df_cleaned.pkl, tfidf_matrix.pkl, cosine_sim.pkl
+[2025-08-08 11:48:42,652] INFO - 🚀 Loading dataset: top_monthly_songs.csv
+[2025-08-08 11:48:42,659] INFO - 🧹 Building metadata documents...
+[2025-08-08 11:48:42,660] INFO - 🔠 Vectorizing with TF-IDF (max_features=4000)…
+[2025-08-08 11:48:42,664] INFO - ✅ TF-IDF matrix shape: (50, 445)
+[2025-08-08 11:48:42,664] INFO - 📐 Computing cosine similarity…
+[2025-08-08 11:48:42,665] INFO - 💾 Saving artifacts…
+[2025-08-08 11:48:42,666] INFO - ✅ Done. Wrote df_cleaned.pkl, tfidf_matrix.pkl, cosine_sim.pkl
+[2025-08-08 11:55:14,519] INFO - 🚀 Loading dataset: top_monthly_songs.csv
+[2025-08-08 11:55:14,525] INFO - 🧹 Building metadata documents...
+[2025-08-08 11:55:14,527] INFO - 🔠 Vectorizing with TF-IDF (max_features=4000)…
+[2025-08-08 11:55:14,529] INFO - ✅ TF-IDF matrix shape: (50, 445)
+[2025-08-08 11:55:14,529] INFO - 📐 Computing cosine similarity…
+[2025-08-08 11:55:14,530] INFO - 💾 Saving artifacts…
+[2025-08-08 11:55:14,532] INFO - ✅ Done. Wrote df_cleaned.pkl, tfidf_matrix.pkl, cosine_sim.pkl
+[2025-08-08 11:58:48,288] INFO - 🚀 Loading dataset: top_monthly_songs.csv
+[2025-08-08 11:58:48,295] INFO - 🧹 Building metadata documents...
+[2025-08-08 11:58:48,297] INFO - 🔠 Vectorizing with TF-IDF (max_features=4000)…
+[2025-08-08 11:58:48,300] INFO - ✅ TF-IDF matrix shape: (50, 445)
+[2025-08-08 11:58:48,300] INFO - 📐 Computing cosine similarity…
+[2025-08-08 11:58:48,301] INFO - 💾 Saving artifacts…
+[2025-08-08 11:58:48,303] INFO - ✅ Done. Wrote df_cleaned.pkl, tfidf_matrix.pkl, cosine_sim.pkl
+[2025-08-08 12:02:31,379] INFO - 🚀 Loading dataset: top_monthly_songs.csv
+[2025-08-08 12:02:31,383] INFO - 🧹 Building metadata documents...
+[2025-08-08 12:02:31,384] INFO - 🔠 Vectorizing with TF-IDF (max_features=4000)…
+[2025-08-08 12:02:31,386] INFO - ✅ TF-IDF matrix shape: (50, 445)
+[2025-08-08 12:02:31,386] INFO - 📐 Computing cosine similarity…
+[2025-08-08 12:02:31,387] INFO - 💾 Saving artifacts…
+[2025-08-08 12:02:31,389] INFO - ✅ Done. Wrote df_cleaned.pkl, tfidf_matrix.pkl, cosine_sim.pkl

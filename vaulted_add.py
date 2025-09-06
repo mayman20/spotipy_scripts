@@ -1,12 +1,15 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import sys
+import os
 import time
 import itertools
+from dotenv import load_dotenv
+load_dotenv()
 
-client_id = '0f57cff8a23d487a88ac66fbc89e1ee3'
-client_secret = 'd9ace617384f469a8fa5ad39f2f3b96e'
-redirect_uri = 'http://localhost/'
+client_id=os.getenv('SPOTIPY_CLIENT_ID')
+client_secret=os.getenv('SPOTIPY_CLIENT_SECRET')
+redirect_uri=os.getenv('SPOTIPY_REDIRECT_URI')
 scope = 'user-top-read user-library-read playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative'
 
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id,
