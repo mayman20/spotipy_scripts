@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.cache/
+scripts/**/cache/
+scripts/**/logs/
+scripts/**/output/
+# Uncomment to ignore all CSV exports
+# *.csv
+cookies.dat
+.env
+_backup_*/
