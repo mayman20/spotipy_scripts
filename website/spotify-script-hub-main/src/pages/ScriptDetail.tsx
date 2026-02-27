@@ -10,7 +10,7 @@ import { ArrowLeft, Play, Eye } from "lucide-react";
 import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
-import { dispatchScriptRun, getActionsRunPageUrl, resolveRunnableScript } from "@/lib/github-actions";
+import { getSessionToken, runScript } from "@/lib/api";
 
 export default function ScriptDetail() {
   const { scriptId } = useParams();
@@ -18,8 +18,7 @@ export default function ScriptDetail() {
   const [isRunning, setIsRunning] = useState(false);
   const [dryRun, setDryRun] = useState(false);
   const relatedRuns = mockRuns.filter((r) => r.scriptId === scriptId);
-  const runnableScript = scriptId ? resolveRunnableScript(scriptId) : undefined;
-  const actionsUrl = getActionsRunPageUrl();
+  const runnableScript = scriptId === "vaulted-add" ? "vaulted" : scriptId === "liked-songs-mirror" ? "liked" : undefined;
 
   if (!script) {
     return (
@@ -36,26 +35,27 @@ export default function ScriptDetail() {
     if (!runnableScript) {
       toast({
         title: "Not wired yet",
-        description: "This script is not connected to GitHub Actions yet.",
+        description: "This script is not connected to backend execution yet.",
       });
       return;
     }
 
-    const token = localStorage.getItem("github_actions_token") || "";
+    const token = getSessionToken();
     if (!token) {
       toast({
-        title: "GitHub token required",
-        description: "Set token in Settings to run scripts from the page.",
+        title: "Spotify login required",
+        description: "Connect Spotify in Settings before running scripts.",
       });
       return;
     }
 
     setIsRunning(true);
-    dispatchScriptRun(runnableScript, token)
-      .then(() => {
+    runScript(runnableScript)
+      .then((data) => {
+        const text = JSON.stringify(data);
         toast({
-          title: "Run queued",
-          description: "Workflow dispatch sent. Open GitHub Actions to monitor logs.",
+          title: "Run completed",
+          description: text.length > 180 ? `${text.slice(0, 180)}...` : text,
         });
       })
       .catch((err: unknown) => {
@@ -150,14 +150,11 @@ export default function ScriptDetail() {
                   </>
                 )}
               </Button>
-              <Button variant="outline" asChild>
-                <a href={actionsUrl} target="_blank" rel="noreferrer">View Actions</a>
-              </Button>
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
             {runnableScript
-              ? "Run Script dispatches a GitHub Actions workflow."
+              ? "Run Script executes via backend API using your connected Spotify account."
               : "This script is UI-only right now; no workflow is connected yet."}
           </p>
         </CardContent>

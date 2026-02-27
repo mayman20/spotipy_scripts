@@ -42,8 +42,20 @@ The extracted website project is in `website/`.
 
 - GitHub Pages deploy workflow: `.github/workflows/deploy-pages.yml`
 - Script run workflow: `.github/workflows/run-spotify-script.yml`
-- Add repository secrets before running scripts in Actions:
+- Legacy workflow route is still available, but user-facing execution now runs through backend OAuth.
+
+## Backend (Render)
+
+- Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+- Health check: `/healthz`
+- Required env vars:
 - `SPOTIPY_CLIENT_ID`
 - `SPOTIPY_CLIENT_SECRET`
-- `SPOTIPY_REDIRECT_URI`
-- In website Settings, store a fine-grained GitHub token (Actions: Read and write) to trigger runs from the web UI.
+- `SPOTIPY_REDIRECT_URI` (Render callback URL)
+- `DATABASE_URL`
+- `APP_SECRET_KEY`
+- `FRONTEND_URL` (GitHub Pages URL)
+
+Frontend build env:
+
+- `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
