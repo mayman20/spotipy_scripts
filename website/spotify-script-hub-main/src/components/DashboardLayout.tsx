@@ -2,9 +2,13 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockUser } from "@/lib/mock-data";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 export function DashboardLayout() {
+  const { user, loading } = useCurrentUser();
+  const name = loading ? "Loading..." : user?.display_name || "Not Connected";
+  const fallback = (user?.display_name || "NC").slice(0, 2).toUpperCase();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -13,10 +17,10 @@ export function DashboardLayout() {
           <header className="h-14 flex items-center justify-between border-b px-4">
             <SidebarTrigger />
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">{mockUser.displayName}</span>
+              <span className="text-sm text-muted-foreground">{name}</span>
               <Avatar className="h-8 w-8">
-                <AvatarImage src={mockUser.avatarUrl} />
-                <AvatarFallback>AR</AvatarFallback>
+                <AvatarImage src="" />
+                <AvatarFallback>{fallback}</AvatarFallback>
               </Avatar>
             </div>
           </header>
