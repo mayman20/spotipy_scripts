@@ -1,20 +1,21 @@
-import { ListMusic, Heart, Users } from "lucide-react";
-import { StatCard } from "@/components/StatCard";
 import { ScriptCard } from "@/components/ScriptCard";
-import { mockUser, scripts } from "@/lib/mock-data";
+import { scripts } from "@/lib/mock-data";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 export default function Dashboard() {
+  const { user } = useCurrentUser();
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold">Welcome back, {mockUser.displayName}</h1>
-        <p className="text-muted-foreground">Here's your Spotify library overview.</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard label="Playlists" value={mockUser.playlists} icon={ListMusic} />
-        <StatCard label="Saved Tracks" value={mockUser.savedTracks.toLocaleString()} icon={Heart} />
-        <StatCard label="Following" value={mockUser.following} icon={Users} />
+        <h1 className="text-2xl font-bold">
+          {user ? `Welcome back, ${user.display_name}` : "Welcome"}
+        </h1>
+        <p className="text-muted-foreground">
+          {user
+            ? "Run your Spotify automations below."
+            : "Connect your Spotify account in Settings to run automations."}
+        </p>
       </div>
 
       <div>
