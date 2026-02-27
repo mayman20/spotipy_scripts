@@ -2,10 +2,40 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
 import { LogOut, Shield, Info } from "lucide-react";
 import { mockUser } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+
+const TOKEN_STORAGE_KEY = "github_actions_token";
 
 export default function Settings() {
+  const [githubToken, setGithubToken] = useState("");
+
+  useEffect(() => {
+    const existing = localStorage.getItem(TOKEN_STORAGE_KEY) || "";
+    setGithubToken(existing);
+  }, []);
+
+  const saveToken = () => {
+    localStorage.setItem(TOKEN_STORAGE_KEY, githubToken.trim());
+    toast({
+      title: "Saved",
+      description: "GitHub token saved in your browser for workflow runs.",
+    });
+  };
+
+  const clearToken = () => {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    setGithubToken("");
+    toast({
+      title: "Cleared",
+      description: "GitHub token removed from browser storage.",
+    });
+  };
+
   return (
     <div className="space-y-6 max-w-2xl animate-fade-in">
       <div>
@@ -43,6 +73,34 @@ export default function Settings() {
           <Button variant="destructive" className="w-full">
             <LogOut className="h-4 w-4 mr-2" /> Disconnect Spotify
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">GitHub Actions Trigger</CardTitle>
+          <CardDescription>
+            Store a fine-grained GitHub token locally in this browser to run scripts from the site.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="github-token">Token</Label>
+            <Input
+              id="github-token"
+              type="password"
+              placeholder="github_pat_..."
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Required scopes/permissions: Actions Read and write for repo {`mayman20/spotipy_scripts`}.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={saveToken}>Save Token</Button>
+            <Button variant="outline" onClick={clearToken}>Clear Token</Button>
+          </div>
         </CardContent>
       </Card>
 

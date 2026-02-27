@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Play, Eye } from "lucide-react";
 import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/components/ui/use-toast";
+import { dispatchScriptRun, getActionsRunPageUrl, resolveRunnableScript } from "@/lib/github-actions";
 
 export default function ScriptDetail() {
   const { scriptId } = useParams();
@@ -16,6 +18,8 @@ export default function ScriptDetail() {
   const [isRunning, setIsRunning] = useState(false);
   const [dryRun, setDryRun] = useState(false);
   const relatedRuns = mockRuns.filter((r) => r.scriptId === scriptId);
+  const runnableScript = scriptId ? resolveRunnableScript(scriptId) : undefined;
+  const actionsUrl = getActionsRunPageUrl();
 
   if (!script) {
     return (
@@ -29,11 +33,40 @@ export default function ScriptDetail() {
   }
 
   const handleRun = () => {
+    if (!runnableScript) {
+      toast({
+        title: "Not wired yet",
+        description: "This script is not connected to GitHub Actions yet.",
+      });
+      return;
+    }
+
+    const token = localStorage.getItem("github_actions_token") || "";
+    if (!token) {
+      toast({
+        title: "GitHub token required",
+        description: "Set token in Settings to run scripts from the page.",
+      });
+      return;
+    }
+
     setIsRunning(true);
-    // TODO: Call POST /api/scripts/:id/run endpoint here
-    // This is where you'd connect to your Python execution layer
-    // e.g., fetch('/api/scripts/' + script.id + '/run', { method: 'POST', body: JSON.stringify(config) })
-    setTimeout(() => setIsRunning(false), 3000);
+    dispatchScriptRun(runnableScript, token)
+      .then(() => {
+        toast({
+          title: "Run queued",
+          description: "Workflow dispatch sent. Open GitHub Actions to monitor logs.",
+        });
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Failed to dispatch workflow.";
+        toast({
+          title: "Dispatch failed",
+          description: msg,
+          variant: "destructive",
+        });
+      })
+      .finally(() => setIsRunning(false));
   };
 
   return (
@@ -117,8 +150,16 @@ export default function ScriptDetail() {
                   </>
                 )}
               </Button>
+              <Button variant="outline" asChild>
+                <a href={actionsUrl} target="_blank" rel="noreferrer">View Actions</a>
+              </Button>
             </div>
           </div>
+          <p className="text-xs text-muted-foreground">
+            {runnableScript
+              ? "Run Script dispatches a GitHub Actions workflow."
+              : "This script is UI-only right now; no workflow is connected yet."}
+          </p>
         </CardContent>
       </Card>
 

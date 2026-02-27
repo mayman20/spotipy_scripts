@@ -37,3 +37,13 @@ Create/update `.env` at project root with Spotipy credentials:
 ## Website
 
 The extracted website project is in `website/`.
+
+## GitHub Pages + Web Trigger
+
+- GitHub Pages deploy workflow: `.github/workflows/deploy-pages.yml`
+- Script run workflow: `.github/workflows/run-spotify-script.yml`
+- Add repository secrets before running scripts in Actions:
+- `SPOTIPY_CLIENT_ID`
+- `SPOTIPY_CLIENT_SECRET`
+- `SPOTIPY_REDIRECT_URI`
+- In website Settings, store a fine-grained GitHub token (Actions: Read and write) to trigger runs from the web UI.
