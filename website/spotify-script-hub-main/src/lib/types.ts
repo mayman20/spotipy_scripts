@@ -23,6 +23,8 @@ export interface Script {
   description: string;
   icon: string;
   configFields: ConfigField[];
+  enabled?: boolean;
+  disabledReason?: string;
 }
 
 export interface Run {

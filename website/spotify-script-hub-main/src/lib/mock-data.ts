@@ -16,6 +16,8 @@ export const scripts: Script[] = [
     name: 'Monthly Recommendations Playlist',
     description: 'Create a playlist with monthly top discoveries.',
     icon: 'Star',
+    enabled: false,
+    disabledReason: 'Temporarily unavailable while recommendations pipeline is being improved.',
     configFields: [
       { name: 'playlistName', label: 'Playlist Name', type: 'text', placeholder: 'Monthly Discoveries - Feb 2026' },
       { name: 'trackCount', label: 'Number of Tracks', type: 'number', defaultValue: 30 },
@@ -43,16 +45,6 @@ export const scripts: Script[] = [
     ],
   },
   {
-    id: 'deduplicate-playlists',
-    name: 'Deduplicate Playlists',
-    description: 'Find and remove duplicate tracks from selected playlists.',
-    icon: 'Copy',
-    configFields: [
-      { name: 'targetPlaylist', label: 'Playlist', type: 'select', options: ['All Playlists', 'Road Trip Mix', 'Workout', 'Chill Vibes'] },
-      { name: 'matchBy', label: 'Match By', type: 'select', options: ['Track ID', 'Track Name + Artist', 'ISRC'] },
-    ],
-  },
-  {
     id: 'vaulted-add',
     name: 'Vaulted Add',
     description: 'Add songs meeting conditions to a "Vaulted" playlist.',
@@ -74,15 +66,6 @@ export const mockRuns: Run[] = [
     startedAt: '2026-02-27T10:30:00Z',
     duration: '12s',
     logsPreview: 'Found 30 tracks. Playlist created successfully.',
-  },
-  {
-    id: 'run-002',
-    scriptId: 'deduplicate-playlists',
-    scriptName: 'Deduplicate Playlists',
-    status: 'running',
-    startedAt: '2026-02-27T11:00:00Z',
-    duration: '—',
-    logsPreview: 'Scanning playlists... 3/47 complete',
   },
   {
     id: 'run-003',
