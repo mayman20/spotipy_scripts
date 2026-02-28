@@ -41,7 +41,15 @@ def _is_allowed_return_url(return_to: str) -> bool:
         normalized_origin = f"{parsed.scheme}://{parsed.netloc}"
     except Exception:
         return False
-    return normalized_origin in _frontend_origins(settings.frontend_url)
+    if normalized_origin in _frontend_origins(settings.frontend_url):
+        return True
+
+    # Local dev: allow localhost/127.0.0.1 on any port.
+    host = parsed.hostname or ""
+    if host in {"127.0.0.1", "localhost"}:
+        return True
+
+    return False
 
 app.add_middleware(
     CORSMiddleware,
