@@ -21,7 +21,7 @@ export function clearSessionToken(): void {
 
 export function getSpotifyLoginUrl(): string {
   if (!API_BASE) return "";
-  const returnTo = `${window.location.origin}${window.location.pathname}`;
+  const returnTo = `${window.location.origin}${window.location.pathname}#/dashboard`;
   return `${API_BASE}/auth/login?return_to=${encodeURIComponent(returnTo)}`;
 }
 
