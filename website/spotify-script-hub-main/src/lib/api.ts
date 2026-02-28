@@ -1,5 +1,6 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 const SESSION_STORAGE_KEY = "spotify_session_token";
+export type TimeRange = "short_term" | "medium_term" | "long_term";
 
 export function getApiBaseUrl(): string {
   return API_BASE;
@@ -46,6 +47,44 @@ export async function runScript(script: "vaulted" | "liked"): Promise<unknown> {
   if (!resp.ok) {
     const text = await resp.text();
     throw new Error(text || `Run failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function fetchOverviewStats(timeRange: TimeRange): Promise<{
+  ok: boolean;
+  overview: {
+    time_range: TimeRange;
+    counts: {
+      playlists_total: number;
+      playlists_owned: number;
+      saved_tracks_total: number;
+      added_7d: number;
+      added_30d: number;
+    };
+    top_artists: Array<{
+      id: string;
+      name: string;
+      genres: string[];
+      popularity: number;
+      image_url: string | null;
+    }>;
+    top_tracks: Array<{
+      id: string;
+      name: string;
+      artists: string[];
+      popularity: number;
+      image_url: string | null;
+    }>;
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/stats/overview?time_range=${encodeURIComponent(timeRange)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || `Stats fetch failed: ${resp.status}`);
   }
   return resp.json();
 }

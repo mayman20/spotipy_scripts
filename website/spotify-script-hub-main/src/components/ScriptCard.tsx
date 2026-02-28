@@ -15,9 +15,10 @@ interface ScriptCardProps {
 
 export function ScriptCard({ script, showActions = true }: ScriptCardProps) {
   const Icon = iconMap[script.icon] || Zap;
+  const isEnabled = script.enabled !== false;
 
   return (
-    <Card className="group hover:border-primary/30 transition-all duration-300">
+    <Card className={`group transition-all duration-300 ${isEnabled ? "hover:border-primary/30" : "opacity-60"}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
@@ -28,14 +29,17 @@ export function ScriptCard({ script, showActions = true }: ScriptCardProps) {
       </CardHeader>
       <CardContent className="pb-3">
         <p className="text-sm text-muted-foreground">{script.description}</p>
+        {!isEnabled && script.disabledReason ? (
+          <p className="text-xs text-muted-foreground mt-2">{script.disabledReason}</p>
+        ) : null}
       </CardContent>
       {showActions && (
         <CardFooter className="gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/scripts/${script.id}`}>Configure</Link>
+          <Button variant="outline" size="sm" asChild disabled={!isEnabled}>
+            {isEnabled ? <Link to={`/scripts/${script.id}`}>Configure</Link> : <span>Configure</span>}
           </Button>
-          <Button size="sm" asChild>
-            <Link to={`/scripts/${script.id}`}>Run</Link>
+          <Button size="sm" asChild disabled={!isEnabled}>
+            {isEnabled ? <Link to={`/scripts/${script.id}`}>Run</Link> : <span>Run</span>}
           </Button>
         </CardFooter>
       )}

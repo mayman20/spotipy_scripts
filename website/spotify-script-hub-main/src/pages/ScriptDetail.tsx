@@ -21,6 +21,7 @@ export default function ScriptDetail() {
   const [lastOutput, setLastOutput] = useState<string>("");
   const [lastError, setLastError] = useState<string>("");
   const runnableScript = scriptId === "vaulted-add" ? "vaulted" : scriptId === "liked-songs-mirror" ? "liked" : undefined;
+  const isEnabled = script.enabled !== false;
 
   if (!script) {
     return (
@@ -34,6 +35,14 @@ export default function ScriptDetail() {
   }
 
   const handleRun = () => {
+    if (!isEnabled) {
+      toast({
+        title: "Temporarily unavailable",
+        description: script.disabledReason || "This script is currently disabled.",
+      });
+      return;
+    }
+
     if (!runnableScript) {
       toast({
         title: "Not wired yet",
@@ -149,7 +158,7 @@ export default function ScriptDetail() {
               <Button variant="outline" disabled={isRunning}>
                 Preview Changes
               </Button>
-              <Button onClick={handleRun} disabled={isRunning}>
+              <Button onClick={handleRun} disabled={isRunning || !isEnabled}>
                 {isRunning ? (
                   <>Running...</>
                 ) : (

@@ -8,7 +8,7 @@ from .config import Settings
 from .db import delete_tokens, get_tokens, init_db
 from .security import make_session_token, make_state, read_session_token, read_state
 from .spotify_auth import build_authorize_url, exchange_code_for_tokens, get_spotify_client_for_user, store_login_tokens
-from .tasks import run_liked_add, run_vaulted_add
+from .tasks import get_dashboard_overview, run_liked_add, run_vaulted_add
 
 settings = Settings()
 app = FastAPI(title="Spotipy Scripts API", version="0.2.0")
@@ -145,6 +145,17 @@ def me(authorization: str | None = Header(default=None, alias="Authorization")) 
     if not row:
         raise HTTPException(status_code=404, detail="User not found.")
     return {"spotify_user_id": row["spotify_user_id"], "display_name": row["display_name"]}
+
+
+@app.get("/stats/overview")
+def stats_overview(
+    time_range: str = "short_term",
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    overview = get_dashboard_overview(sp, time_range=time_range)
+    return {"ok": True, "overview": overview}
 
 
 @app.post("/run/vaulted")
