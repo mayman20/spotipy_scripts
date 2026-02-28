@@ -21,6 +21,15 @@ def _frontend_origins(frontend_url: str) -> list[str]:
     parsed = urlparse(frontend_url)
     if parsed.scheme and parsed.netloc:
         candidates.add(f"{parsed.scheme}://{parsed.netloc}")
+    # Local rapid-dev origins for Vite previews.
+    candidates.update(
+        {
+            "http://127.0.0.1:5173",
+            "http://localhost:5173",
+            "http://127.0.0.1:8080",
+            "http://localhost:8080",
+        }
+    )
     return sorted(candidates)
 
 app.add_middleware(

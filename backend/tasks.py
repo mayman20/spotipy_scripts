@@ -4,6 +4,8 @@ import spotipy
 from spotipy.exceptions import SpotifyException
 
 EXCLUDE_DESCRIPTION_FLAG = "-*"
+VAULTED_TAG = "[spotipy:vaulted_add]"
+LIKED_TAG = "[spotipy:liked_mirror]"
 
 
 def _backoff(call, *args, **kwargs):
@@ -33,6 +35,16 @@ def _all_user_playlists(sp: spotipy.Spotify) -> list[dict]:
         playlists.extend(response.get("items", []))
         response = _backoff(sp.next, response) if response.get("next") else None
     return playlists
+
+
+def _find_playlist_by_tag(playlists: list[dict], user_id: str, tag: str) -> dict | None:
+    for playlist in playlists:
+        if (playlist.get("owner") or {}).get("id") != user_id:
+            continue
+        description = (playlist.get("description") or "").lower()
+        if tag.lower() in description:
+            return playlist
+    return None
 
 
 def _playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> list[str]:
@@ -66,21 +78,25 @@ def run_vaulted_add(sp: spotipy.Spotify, playlist_name: str = "_vaulted") -> dic
     user_id = me["id"]
     playlists = _all_user_playlists(sp)
 
-    existing_playlist_id = None
-    for playlist in playlists:
-        if playlist.get("name") == playlist_name and (playlist.get("owner") or {}).get("id") == user_id:
-            existing_playlist_id = playlist.get("id")
-            break
+    existing_playlist = _find_playlist_by_tag(playlists, user_id, VAULTED_TAG)
+    if not existing_playlist:
+        for playlist in playlists:
+            if playlist.get("name") == playlist_name and (playlist.get("owner") or {}).get("id") == user_id:
+                existing_playlist = playlist
+                break
 
-    if not existing_playlist_id:
+    if not existing_playlist:
         created = _backoff(
             sp.user_playlist_create,
             user=user_id,
             name=playlist_name,
             public=False,
-            description="Managed by Spotipy Scripts",
+            description=f"Managed by Spotipy Scripts {VAULTED_TAG}",
         )
-        existing_playlist_id = created["id"]
+        existing_playlist = created
+
+    existing_playlist_id = existing_playlist["id"]
+    existing_playlist_name = existing_playlist.get("name") or playlist_name
 
     all_tracks: set[str] = set()
     excluded = 0
@@ -106,26 +122,42 @@ def run_vaulted_add(sp: spotipy.Spotify, playlist_name: str = "_vaulted") -> dic
 
     return {
         "playlist_id": existing_playlist_id,
-        "playlist_name": playlist_name,
+        "playlist_name": existing_playlist_name,
         "added": len(to_add),
         "removed": len(to_remove),
         "excluded_playlists": excluded,
+        "tag": VAULTED_TAG,
     }
 
 
-def _get_or_create_playlist(sp: spotipy.Spotify, user_id: str, playlist_name: str, public: bool = False) -> str:
+def _get_or_create_playlist(
+    sp: spotipy.Spotify,
+    user_id: str,
+    playlist_name: str,
+    public: bool = False,
+    tag: str | None = None,
+) -> dict:
     playlists = _all_user_playlists(sp)
+    if tag:
+        tagged = _find_playlist_by_tag(playlists, user_id, tag)
+        if tagged:
+            return tagged
     for pl in playlists:
         if pl.get("name") == playlist_name and (pl.get("owner") or {}).get("id") == user_id:
-            return pl["id"]
-    created = _backoff(sp.user_playlist_create, user=user_id, name=playlist_name, public=public)
-    return created["id"]
+            return pl
+    description = "Managed by Spotipy Scripts"
+    if tag:
+        description = f"{description} {tag}"
+    created = _backoff(sp.user_playlist_create, user=user_id, name=playlist_name, public=public, description=description)
+    return created
 
 
 def run_liked_add(sp: spotipy.Spotify, playlist_name: str = "Liked Songs Mirror") -> dict:
     me = _backoff(sp.me)
     user_id = me["id"]
-    playlist_id = _get_or_create_playlist(sp, user_id, playlist_name, public=False)
+    playlist = _get_or_create_playlist(sp, user_id, playlist_name, public=False, tag=LIKED_TAG)
+    playlist_id = playlist["id"]
+    resolved_playlist_name = playlist.get("name") or playlist_name
 
     desired = _liked_track_ids(sp)  # API returns newest -> oldest
 
@@ -134,4 +166,4 @@ def run_liked_add(sp: spotipy.Spotify, playlist_name: str = "Liked Songs Mirror"
     for i in range(100, len(desired), 100):
         _backoff(sp.playlist_add_items, playlist_id, desired[i : i + 100])
 
-    return {"playlist_id": playlist_id, "playlist_name": playlist_name, "total_tracks": len(desired)}
+    return {"playlist_id": playlist_id, "playlist_name": resolved_playlist_name, "total_tracks": len(desired), "tag": LIKED_TAG}
