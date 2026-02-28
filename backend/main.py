@@ -54,6 +54,7 @@ def _is_allowed_return_url(return_to: str) -> bool:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_frontend_origins(settings.frontend_url),
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
