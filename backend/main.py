@@ -13,6 +13,7 @@ from .tasks import (
     get_automation_targets,
     get_dashboard_overview,
     get_genre_playlist_recommendations,
+    get_top_lists,
     run_liked_add,
     run_vaulted_add,
 )
@@ -163,6 +164,17 @@ def stats_overview(
     sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
     overview = get_dashboard_overview(sp, time_range=time_range)
     return {"ok": True, "overview": overview}
+
+
+@app.get("/stats/top")
+def stats_top(
+    time_range: str = "short_term",
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    data = get_top_lists(sp, time_range=time_range)
+    return {"ok": True, "data": data}
 
 
 @app.get("/recommendations/genre-playlists")

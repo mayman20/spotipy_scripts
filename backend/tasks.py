@@ -9,6 +9,8 @@ EXCLUDE_DESCRIPTION_FLAG = "-*"
 VAULTED_TAG = "[spotipy:vaulted_add]"
 LIKED_TAG = "[spotipy:liked_mirror]"
 VALID_TIME_RANGES = {"short_term", "medium_term", "long_term"}
+_CACHE_TTL_SECONDS = 120
+_CACHE: dict[str, tuple[float, dict]] = {}
 
 
 def _backoff(call, *args, **kwargs):
@@ -29,6 +31,22 @@ def _backoff(call, *args, **kwargs):
         except Exception:
             time.sleep(delay)
             delay = min(delay * 2, 16)
+
+
+def _cache_get(key: str) -> dict | None:
+    record = _CACHE.get(key)
+    if not record:
+        return None
+    expires_at, value = record
+    if time.time() > expires_at:
+        _CACHE.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(key: str, value: dict, ttl: int = _CACHE_TTL_SECONDS) -> dict:
+    _CACHE[key] = (time.time() + ttl, value)
+    return value
 
 
 def _all_user_playlists(sp: spotipy.Spotify) -> list[dict]:
@@ -115,6 +133,43 @@ def _liked_track_ids(sp: spotipy.Spotify) -> list[str]:
 def _parse_spotify_date(s: str) -> datetime | None:
     if not s:
         return None
+
+
+def _fetch_top_lists(sp: spotipy.Spotify, time_range: str, limit: int = 25) -> dict:
+    top_artists_resp = _backoff(sp.current_user_top_artists, time_range=time_range, limit=limit)
+    top_tracks_resp = _backoff(sp.current_user_top_tracks, time_range=time_range, limit=limit)
+
+    top_artists = []
+    for artist in top_artists_resp.get("items", []):
+        images = artist.get("images") or []
+        image_url = images[0]["url"] if images else None
+        top_artists.append(
+            {
+                "id": artist.get("id"),
+                "name": artist.get("name"),
+                "genres": artist.get("genres") or [],
+                "popularity": artist.get("popularity"),
+                "image_url": image_url,
+            }
+        )
+
+    top_tracks = []
+    for track in top_tracks_resp.get("items", []):
+        album = track.get("album") or {}
+        images = album.get("images") or []
+        image_url = images[0]["url"] if images else None
+        artists = [a.get("name") for a in (track.get("artists") or []) if a.get("name")]
+        top_tracks.append(
+            {
+                "id": track.get("id"),
+                "name": track.get("name"),
+                "artists": artists,
+                "popularity": track.get("popularity"),
+                "image_url": image_url,
+            }
+        )
+
+    return {"top_artists": top_artists, "top_tracks": top_tracks}
     try:
         return datetime.fromisoformat(s.replace("Z", "+00:00"))
     except Exception:
@@ -127,6 +182,10 @@ def get_dashboard_overview(sp: spotipy.Spotify, time_range: str = "short_term") 
 
     me = _backoff(sp.me)
     user_id = me["id"]
+    cache_key = f"overview:{user_id}:{time_range}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
 
     # Playlist totals and owned count.
     playlists_total = 0
@@ -168,40 +227,9 @@ def get_dashboard_overview(sp: spotipy.Spotify, time_range: str = "short_term") 
             break
         saved_resp = _backoff(sp.next, saved_resp)
 
-    top_artists_resp = _backoff(sp.current_user_top_artists, time_range=time_range, limit=10)
-    top_tracks_resp = _backoff(sp.current_user_top_tracks, time_range=time_range, limit=10)
+    top_lists = _fetch_top_lists(sp, time_range=time_range, limit=25)
 
-    top_artists = []
-    for artist in top_artists_resp.get("items", []):
-        images = artist.get("images") or []
-        image_url = images[0]["url"] if images else None
-        top_artists.append(
-            {
-                "id": artist.get("id"),
-                "name": artist.get("name"),
-                "genres": artist.get("genres") or [],
-                "popularity": artist.get("popularity"),
-                "image_url": image_url,
-            }
-        )
-
-    top_tracks = []
-    for track in top_tracks_resp.get("items", []):
-        album = track.get("album") or {}
-        images = album.get("images") or []
-        image_url = images[0]["url"] if images else None
-        artists = [a.get("name") for a in (track.get("artists") or []) if a.get("name")]
-        top_tracks.append(
-            {
-                "id": track.get("id"),
-                "name": track.get("name"),
-                "artists": artists,
-                "popularity": track.get("popularity"),
-                "image_url": image_url,
-            }
-        )
-
-    return {
+    payload = {
         "time_range": time_range,
         "counts": {
             "playlists_total": playlists_total,
@@ -210,14 +238,34 @@ def get_dashboard_overview(sp: spotipy.Spotify, time_range: str = "short_term") 
             "added_7d": added_7d,
             "added_30d": added_30d,
         },
-        "top_artists": top_artists,
-        "top_tracks": top_tracks,
+        "top_artists": top_lists["top_artists"],
+        "top_tracks": top_lists["top_tracks"],
     }
+    return _cache_set(cache_key, payload)
+
+
+def get_top_lists(sp: spotipy.Spotify, time_range: str = "short_term") -> dict:
+    if time_range not in VALID_TIME_RANGES:
+        time_range = "short_term"
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    cache_key = f"top_lists:{user_id}:{time_range}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+    payload = {"time_range": time_range, **_fetch_top_lists(sp, time_range=time_range, limit=25)}
+    return _cache_set(cache_key, payload)
 
 
 def get_genre_playlist_recommendations(sp: spotipy.Spotify, time_range: str = "medium_term") -> dict:
     if time_range not in VALID_TIME_RANGES:
         time_range = "medium_term"
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    cache_key = f"genre_recs:{user_id}:{time_range}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
 
     top_artists_resp = _backoff(sp.current_user_top_artists, time_range=time_range, limit=30)
     artists = top_artists_resp.get("items", [])
@@ -253,6 +301,7 @@ def get_genre_playlist_recommendations(sp: spotipy.Spotify, time_range: str = "m
                     "description": playlist.get("description") or "",
                     "owner_name": (playlist.get("owner") or {}).get("display_name") or "",
                     "url": ((playlist.get("external_urls") or {}).get("spotify") or ""),
+                    "open_url": f"https://open.spotify.com/playlist/{pid}",
                     "image_url": image_url,
                 }
             )
@@ -261,7 +310,8 @@ def get_genre_playlist_recommendations(sp: spotipy.Spotify, time_range: str = "m
 
         recommendations.append({"genre": genre, "playlists": picks})
 
-    return {"time_range": time_range, "genres": top_genres, "recommendations": recommendations}
+    payload = {"time_range": time_range, "genres": top_genres, "recommendations": recommendations}
+    return _cache_set(cache_key, payload)
 
 
 def run_vaulted_add(
