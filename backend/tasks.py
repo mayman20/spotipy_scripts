@@ -227,8 +227,6 @@ def get_dashboard_overview(sp: spotipy.Spotify, time_range: str = "short_term") 
             break
         saved_resp = _backoff(sp.next, saved_resp)
 
-    top_lists = _fetch_top_lists(sp, time_range=time_range, limit=25)
-
     payload = {
         "time_range": time_range,
         "counts": {
@@ -238,8 +236,9 @@ def get_dashboard_overview(sp: spotipy.Spotify, time_range: str = "short_term") 
             "added_7d": added_7d,
             "added_30d": added_30d,
         },
-        "top_artists": top_lists["top_artists"],
-        "top_tracks": top_lists["top_tracks"],
+        # Top lists are loaded via /stats/top to keep this endpoint fast/reliable.
+        "top_artists": [],
+        "top_tracks": [],
     }
     return _cache_set(cache_key, payload)
 
