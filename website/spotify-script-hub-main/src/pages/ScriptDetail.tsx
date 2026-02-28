@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Play, Eye } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
-import { getSessionToken, runScript } from "@/lib/api";
+import { fetchAutomationTargets, getSessionToken, runScript } from "@/lib/api";
 
 export default function ScriptDetail() {
   const { scriptId } = useParams();
@@ -21,7 +21,59 @@ export default function ScriptDetail() {
   const [lastOutput, setLastOutput] = useState<string>("");
   const [lastError, setLastError] = useState<string>("");
   const runnableScript = scriptId === "vaulted-add" ? "vaulted" : scriptId === "liked-songs-mirror" ? "liked" : undefined;
-  const isEnabled = script.enabled !== false;
+  const usesTargetSelection = scriptId === "vaulted-add" || scriptId === "liked-songs-mirror";
+  const [targetPlaylistOptions, setTargetPlaylistOptions] = useState<Array<{ value: string; label: string }>>([
+    { value: "create_new", label: "Create New" },
+  ]);
+  const [targetPlaylistSelection, setTargetPlaylistSelection] = useState<string>("create_new");
+  const [targetMatchSource, setTargetMatchSource] = useState<"tag" | "name" | "none">("none");
+  const [loadingTargets, setLoadingTargets] = useState(false);
+  const isEnabled = script?.enabled !== false;
+
+  useEffect(() => {
+    if (!usesTargetSelection) return;
+    const token = getSessionToken();
+    if (!token) return;
+
+    let cancelled = false;
+    setLoadingTargets(true);
+    fetchAutomationTargets()
+      .then((data) => {
+        if (cancelled) return;
+        const targets = data.targets;
+        const selectedTarget = scriptId === "liked-songs-mirror" ? targets.liked : targets.vaulted;
+        const options: Array<{ value: string; label: string }> = [
+          { value: "create_new", label: "Create New" },
+          ...targets.playlists
+            .filter((p) => p.id && p.name)
+            .map((p) => ({ value: `id:${p.id}`, label: p.name })),
+        ];
+        if (!options.some((o) => o.label.toLowerCase() === selectedTarget.name_fallback.toLowerCase())) {
+          options.push({ value: `name:${selectedTarget.name_fallback}`, label: selectedTarget.name_fallback });
+        }
+        setTargetPlaylistOptions(options);
+        setTargetPlaylistSelection(selectedTarget.default_playlist_id ? `id:${selectedTarget.default_playlist_id}` : `name:${selectedTarget.name_fallback}`);
+        setTargetMatchSource(selectedTarget.matched_by);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const defaultName = scriptId === "liked-songs-mirror" ? "Liked Songs Mirror" : "_vaulted";
+        setTargetPlaylistOptions([
+          { value: "create_new", label: "Create New" },
+          { value: `name:${defaultName}`, label: defaultName },
+        ]);
+        setTargetPlaylistSelection(`name:${defaultName}`);
+        const msg = err instanceof Error ? err.message : "Could not load playlist targets.";
+        toast({ title: "Target detection fallback", description: msg });
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTargets(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scriptId, usesTargetSelection]);
 
   if (!script) {
     return (
@@ -63,7 +115,16 @@ export default function ScriptDetail() {
     setIsRunning(true);
     setLastError("");
     setLastOutput("");
-    runScript(runnableScript)
+    let payload: { target_playlist_id?: string; target_playlist_name?: string } | undefined;
+    if (usesTargetSelection && targetPlaylistSelection !== "create_new") {
+      if (targetPlaylistSelection.startsWith("id:")) {
+        payload = { target_playlist_id: targetPlaylistSelection.slice(3) };
+      } else if (targetPlaylistSelection.startsWith("name:")) {
+        payload = { target_playlist_name: targetPlaylistSelection.slice(5) };
+      }
+    }
+
+    runScript(runnableScript, payload)
       .then((data) => {
         const text = JSON.stringify(data);
         setLastRunAt(new Date().toISOString());
@@ -123,18 +184,43 @@ export default function ScriptDetail() {
                 />
               )}
               {field.type === "select" && (
-                <Select defaultValue={field.options?.[0]}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {field.options?.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                field.name === "targetPlaylist" && usesTargetSelection ? (
+                  <>
+                    <Select value={targetPlaylistSelection} onValueChange={setTargetPlaylistSelection}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingTargets ? "Loading playlists..." : "Select target playlist"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {targetPlaylistOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Auto-target rule: tag first, then case-insensitive name match, then Create New.
+                      {targetMatchSource === "tag"
+                        ? " Matched by tag."
+                        : targetMatchSource === "name"
+                          ? " Matched by playlist name."
+                          : " No existing match found."}
+                    </p>
+                  </>
+                ) : (
+                  <Select defaultValue={field.options?.[0]}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options?.map((opt) => (
+                        <SelectItem key={opt} value={opt}>
+                          {opt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )
               )}
               {field.type === "toggle" && (
                 <Switch
