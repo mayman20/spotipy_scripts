@@ -153,6 +153,40 @@ export async function fetchOverviewStats(timeRange: TimeRange): Promise<{
   return resp.json();
 }
 
+export async function fetchTopStats(timeRange: TimeRange): Promise<{
+  ok: boolean;
+  data: {
+    time_range: TimeRange;
+    top_artists: Array<{
+      id: string;
+      name: string;
+      genres: string[];
+      popularity: number;
+      image_url: string | null;
+    }>;
+    top_tracks: Array<{
+      id: string;
+      name: string;
+      artists: string[];
+      popularity: number;
+      image_url: string | null;
+    }>;
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/stats/top?time_range=${encodeURIComponent(timeRange)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    if (resp.status === 404) {
+      throw new Error("Backend endpoint /stats/top not found. Redeploy Render backend from latest main.");
+    }
+    throw new Error(text || `Top stats fetch failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
 export async function fetchGenrePlaylistRecommendations(timeRange: TimeRange): Promise<{
   ok: boolean;
   data: {
@@ -166,6 +200,7 @@ export async function fetchGenrePlaylistRecommendations(timeRange: TimeRange): P
         description: string;
         owner_name: string;
         url: string;
+        open_url: string;
         image_url: string | null;
       }>;
     }>;

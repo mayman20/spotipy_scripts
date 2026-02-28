@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ScriptCard } from "@/components/ScriptCard";
 import { scripts } from "@/lib/mock-data";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { fetchGenrePlaylistRecommendations, fetchOverviewStats, TimeRange } from "@/lib/api";
+import { fetchGenrePlaylistRecommendations, fetchOverviewStats, fetchTopStats, TimeRange } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Disc3, Heart, ListMusic, Plus } from "lucide-react";
@@ -16,6 +16,10 @@ type Overview = {
     added_7d: number;
     added_30d: number;
   };
+};
+
+type TopStats = {
+  time_range: TimeRange;
   top_artists: Array<{
     id: string;
     name: string;
@@ -43,6 +47,7 @@ type GenrePlaylistRecommendations = {
       description: string;
       owner_name: string;
       url: string;
+      open_url: string;
       image_url: string | null;
     }>;
   }>;
@@ -58,37 +63,54 @@ export default function Dashboard() {
   const { user } = useCurrentUser();
   const [timeRange, setTimeRange] = useState<TimeRange>("short_term");
   const [overview, setOverview] = useState<Overview | null>(null);
+  const [topStats, setTopStats] = useState<TopStats | null>(null);
   const [genreRecs, setGenreRecs] = useState<GenrePlaylistRecommendations | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingCounts, setLoadingCounts] = useState(false);
+  const [loadingTop, setLoadingTop] = useState(false);
+  const [loadingGenre, setLoadingGenre] = useState(false);
   const [error, setError] = useState("");
+  const [showAllArtists, setShowAllArtists] = useState(false);
+  const [showAllTracks, setShowAllTracks] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setOverview(null);
+      setTopStats(null);
+      setGenreRecs(null);
       return;
     }
-    setLoading(true);
+    setShowAllArtists(false);
+    setShowAllTracks(false);
     setError("");
-    Promise.allSettled([fetchOverviewStats(timeRange), fetchGenrePlaylistRecommendations(timeRange)])
-      .then((results) => {
-        const [overviewResult, recsResult] = results;
-        if (overviewResult.status === "fulfilled") {
-          setOverview(overviewResult.value.overview);
-        } else {
-          const msg = overviewResult.reason instanceof Error ? overviewResult.reason.message : "Failed to load stats.";
-          setError(msg);
-        }
 
-        if (recsResult.status === "fulfilled") {
-          setGenreRecs(recsResult.value.data);
-        } else {
-          setGenreRecs(null);
-        }
+    setLoadingCounts(true);
+    fetchOverviewStats(timeRange)
+      .then((resp) => setOverview(resp.overview))
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Failed to load counts.";
+        setError(msg);
       })
-      .finally(() => setLoading(false));
+      .finally(() => setLoadingCounts(false));
+
+    setLoadingTop(true);
+    fetchTopStats(timeRange)
+      .then((resp) => setTopStats(resp.data))
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Failed to load top artists and tracks.";
+        setError((prev) => (prev ? `${prev} ${msg}` : msg));
+      })
+      .finally(() => setLoadingTop(false));
+
+    setLoadingGenre(true);
+    fetchGenrePlaylistRecommendations(timeRange)
+      .then((resp) => setGenreRecs(resp.data))
+      .catch(() => setGenreRecs(null))
+      .finally(() => setLoadingGenre(false));
   }, [timeRange, user]);
 
   const visibleScripts = useMemo(() => scripts, []);
+  const visibleArtists = showAllArtists ? (topStats?.top_artists || []).slice(0, 25) : (topStats?.top_artists || []).slice(0, 5);
+  const visibleTracks = showAllTracks ? (topStats?.top_tracks || []).slice(0, 25) : (topStats?.top_tracks || []).slice(0, 5);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -126,7 +148,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="flex items-center gap-3">
                 <Heart className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-bold">{overview?.counts.saved_tracks_total ?? "—"}</span>
+                <span className="text-2xl font-bold">{loadingCounts ? "..." : overview?.counts.saved_tracks_total ?? "—"}</span>
               </CardContent>
             </Card>
             <Card>
@@ -135,7 +157,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="flex items-center gap-3">
                 <ListMusic className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-bold">{overview?.counts.playlists_owned ?? "—"}</span>
+                <span className="text-2xl font-bold">{loadingCounts ? "..." : overview?.counts.playlists_owned ?? "—"}</span>
               </CardContent>
             </Card>
             <Card>
@@ -144,7 +166,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="flex items-center gap-3">
                 <Plus className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-bold">{overview?.counts.added_7d ?? "—"}</span>
+                <span className="text-2xl font-bold">{loadingCounts ? "..." : overview?.counts.added_7d ?? "—"}</span>
               </CardContent>
             </Card>
             <Card>
@@ -153,7 +175,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="flex items-center gap-3">
                 <Disc3 className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-bold">{overview?.counts.added_30d ?? "—"}</span>
+                <span className="text-2xl font-bold">{loadingCounts ? "..." : overview?.counts.added_30d ?? "—"}</span>
               </CardContent>
             </Card>
           </div>
@@ -164,9 +186,9 @@ export default function Dashboard() {
                 <CardTitle className="text-base">Top Artists</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : null}
-                {!loading && overview?.top_artists?.length ? (
-                  overview.top_artists.slice(0, 5).map((artist, idx) => (
+                {loadingTop ? <p className="text-sm text-muted-foreground">Loading...</p> : null}
+                {!loadingTop && visibleArtists.length ? (
+                  visibleArtists.map((artist, idx) => (
                     <div key={artist.id || artist.name} className="flex items-center gap-3">
                       <span className="w-5 text-xs text-muted-foreground">{idx + 1}</span>
                       {artist.image_url ? (
@@ -183,6 +205,11 @@ export default function Dashboard() {
                     </div>
                   ))
                 ) : null}
+                {!loadingTop && (topStats?.top_artists?.length || 0) > 5 ? (
+                  <Button variant="outline" size="sm" onClick={() => setShowAllArtists((v) => !v)}>
+                    {showAllArtists ? "Show Less" : "Show More (25)"}
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -191,9 +218,9 @@ export default function Dashboard() {
                 <CardTitle className="text-base">Top Tracks</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : null}
-                {!loading && overview?.top_tracks?.length ? (
-                  overview.top_tracks.slice(0, 5).map((track, idx) => (
+                {loadingTop ? <p className="text-sm text-muted-foreground">Loading...</p> : null}
+                {!loadingTop && visibleTracks.length ? (
+                  visibleTracks.map((track, idx) => (
                     <div key={track.id || track.name} className="flex items-center gap-3">
                       <span className="w-5 text-xs text-muted-foreground">{idx + 1}</span>
                       {track.image_url ? (
@@ -208,6 +235,11 @@ export default function Dashboard() {
                     </div>
                   ))
                 ) : null}
+                {!loadingTop && (topStats?.top_tracks?.length || 0) > 5 ? (
+                  <Button variant="outline" size="sm" onClick={() => setShowAllTracks((v) => !v)}>
+                    {showAllTracks ? "Show Less" : "Show More (25)"}
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
           </div>
@@ -217,8 +249,8 @@ export default function Dashboard() {
               <CardTitle className="text-base">Genre Playlist Picks</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {loading ? <p className="text-sm text-muted-foreground">Loading recommendations...</p> : null}
-              {!loading && genreRecs?.recommendations?.length ? (
+              {loadingGenre ? <p className="text-sm text-muted-foreground">Loading recommendations...</p> : null}
+              {!loadingGenre && genreRecs?.recommendations?.length ? (
                 <div className="space-y-4">
                   {genreRecs.recommendations.map((group) => (
                     <div key={group.genre} className="space-y-2">
@@ -227,7 +259,7 @@ export default function Dashboard() {
                         {group.playlists.slice(0, 4).map((pl) => (
                           <a
                             key={pl.id}
-                            href={pl.url}
+                            href={pl.open_url || pl.url}
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center gap-3 rounded-md border border-border p-2 hover:bg-muted/50 transition-colors"
@@ -240,6 +272,7 @@ export default function Dashboard() {
                             <div className="min-w-0">
                               <p className="text-sm font-medium truncate">{pl.name}</p>
                               <p className="text-xs text-muted-foreground truncate">{pl.owner_name || "Spotify"}</p>
+                              <p className="text-xs text-primary underline">Open in Spotify</p>
                             </div>
                           </a>
                         ))}
@@ -248,7 +281,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : null}
-              {!loading && !genreRecs?.recommendations?.length ? (
+              {!loadingGenre && !genreRecs?.recommendations?.length ? (
                 <p className="text-sm text-muted-foreground">
                   No genre-based playlist suggestions available yet for this account/time range.
                 </p>
