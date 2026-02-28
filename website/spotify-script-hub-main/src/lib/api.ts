@@ -153,6 +153,38 @@ export async function fetchOverviewStats(timeRange: TimeRange): Promise<{
   return resp.json();
 }
 
+export async function fetchGenrePlaylistRecommendations(timeRange: TimeRange): Promise<{
+  ok: boolean;
+  data: {
+    time_range: TimeRange;
+    genres: string[];
+    recommendations: Array<{
+      genre: string;
+      playlists: Array<{
+        id: string;
+        name: string;
+        description: string;
+        owner_name: string;
+        url: string;
+        image_url: string | null;
+      }>;
+    }>;
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/recommendations/genre-playlists?time_range=${encodeURIComponent(timeRange)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    if (resp.status === 404) {
+      throw new Error("Backend endpoint /recommendations/genre-playlists not found. Redeploy Render backend from latest main.");
+    }
+    throw new Error(text || `Genre recommendations fetch failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
 export function captureSessionTokenFromUrl(): boolean {
   const url = new URL(window.location.href);
   let token = url.searchParams.get("session_token");

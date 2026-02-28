@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ScriptCard } from "@/components/ScriptCard";
 import { scripts } from "@/lib/mock-data";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { fetchOverviewStats, TimeRange } from "@/lib/api";
+import { fetchGenrePlaylistRecommendations, fetchOverviewStats, TimeRange } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Disc3, Heart, ListMusic, Plus } from "lucide-react";
@@ -32,6 +32,22 @@ type Overview = {
   }>;
 };
 
+type GenrePlaylistRecommendations = {
+  time_range: TimeRange;
+  genres: string[];
+  recommendations: Array<{
+    genre: string;
+    playlists: Array<{
+      id: string;
+      name: string;
+      description: string;
+      owner_name: string;
+      url: string;
+      image_url: string | null;
+    }>;
+  }>;
+};
+
 const ranges: Array<{ value: TimeRange; label: string }> = [
   { value: "short_term", label: "4 Weeks" },
   { value: "medium_term", label: "6 Months" },
@@ -42,6 +58,7 @@ export default function Dashboard() {
   const { user } = useCurrentUser();
   const [timeRange, setTimeRange] = useState<TimeRange>("short_term");
   const [overview, setOverview] = useState<Overview | null>(null);
+  const [genreRecs, setGenreRecs] = useState<GenrePlaylistRecommendations | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -52,11 +69,21 @@ export default function Dashboard() {
     }
     setLoading(true);
     setError("");
-    fetchOverviewStats(timeRange)
-      .then((resp) => setOverview(resp.overview))
-      .catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : "Failed to load stats.";
-        setError(msg);
+    Promise.allSettled([fetchOverviewStats(timeRange), fetchGenrePlaylistRecommendations(timeRange)])
+      .then((results) => {
+        const [overviewResult, recsResult] = results;
+        if (overviewResult.status === "fulfilled") {
+          setOverview(overviewResult.value.overview);
+        } else {
+          const msg = overviewResult.reason instanceof Error ? overviewResult.reason.message : "Failed to load stats.";
+          setError(msg);
+        }
+
+        if (recsResult.status === "fulfilled") {
+          setGenreRecs(recsResult.value.data);
+        } else {
+          setGenreRecs(null);
+        }
       })
       .finally(() => setLoading(false));
   }, [timeRange, user]);
@@ -184,6 +211,50 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Genre Playlist Picks</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loading ? <p className="text-sm text-muted-foreground">Loading recommendations...</p> : null}
+              {!loading && genreRecs?.recommendations?.length ? (
+                <div className="space-y-4">
+                  {genreRecs.recommendations.map((group) => (
+                    <div key={group.genre} className="space-y-2">
+                      <p className="text-sm font-semibold capitalize">{group.genre}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {group.playlists.slice(0, 4).map((pl) => (
+                          <a
+                            key={pl.id}
+                            href={pl.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-3 rounded-md border border-border p-2 hover:bg-muted/50 transition-colors"
+                          >
+                            {pl.image_url ? (
+                              <img src={pl.image_url} alt={pl.name} className="h-10 w-10 rounded object-cover" />
+                            ) : (
+                              <div className="h-10 w-10 rounded bg-muted" />
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{pl.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{pl.owner_name || "Spotify"}</p>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {!loading && !genreRecs?.recommendations?.length ? (
+                <p className="text-sm text-muted-foreground">
+                  No genre-based playlist suggestions available yet for this account/time range.
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </>

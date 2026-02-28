@@ -1,4 +1,5 @@
 import time
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 import spotipy
@@ -212,6 +213,55 @@ def get_dashboard_overview(sp: spotipy.Spotify, time_range: str = "short_term") 
         "top_artists": top_artists,
         "top_tracks": top_tracks,
     }
+
+
+def get_genre_playlist_recommendations(sp: spotipy.Spotify, time_range: str = "medium_term") -> dict:
+    if time_range not in VALID_TIME_RANGES:
+        time_range = "medium_term"
+
+    top_artists_resp = _backoff(sp.current_user_top_artists, time_range=time_range, limit=30)
+    artists = top_artists_resp.get("items", [])
+
+    genre_scores: dict[str, int] = defaultdict(int)
+    for idx, artist in enumerate(artists):
+        weight = max(1, 30 - idx)
+        for genre in artist.get("genres") or []:
+            g = (genre or "").strip()
+            if g:
+                genre_scores[g] += weight
+
+    top_genres = [g for g, _ in sorted(genre_scores.items(), key=lambda kv: kv[1], reverse=True)[:5]]
+
+    recommendations = []
+    seen_ids: set[str] = set()
+    for genre in top_genres:
+        # Query Spotify playlists by genre and keep only unique IDs globally.
+        result = _backoff(sp.search, q=f'genre:"{genre}"', type="playlist", limit=8)
+        items = (((result or {}).get("playlists") or {}).get("items") or [])
+        picks = []
+        for playlist in items:
+            pid = playlist.get("id")
+            if not pid or pid in seen_ids:
+                continue
+            seen_ids.add(pid)
+            images = playlist.get("images") or []
+            image_url = images[0]["url"] if images else None
+            picks.append(
+                {
+                    "id": pid,
+                    "name": playlist.get("name") or "",
+                    "description": playlist.get("description") or "",
+                    "owner_name": (playlist.get("owner") or {}).get("display_name") or "",
+                    "url": ((playlist.get("external_urls") or {}).get("spotify") or ""),
+                    "image_url": image_url,
+                }
+            )
+            if len(picks) >= 4:
+                break
+
+        recommendations.append({"genre": genre, "playlists": picks})
+
+    return {"time_range": time_range, "genres": top_genres, "recommendations": recommendations}
 
 
 def run_vaulted_add(
