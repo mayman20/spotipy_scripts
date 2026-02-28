@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { scripts, mockRuns } from "@/lib/mock-data";
+import { scripts } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,9 @@ export default function ScriptDetail() {
   const script = scripts.find((s) => s.id === scriptId);
   const [isRunning, setIsRunning] = useState(false);
   const [dryRun, setDryRun] = useState(false);
-  const relatedRuns = mockRuns.filter((r) => r.scriptId === scriptId);
+  const [lastRunAt, setLastRunAt] = useState<string>("");
+  const [lastOutput, setLastOutput] = useState<string>("");
+  const [lastError, setLastError] = useState<string>("");
   const runnableScript = scriptId === "vaulted-add" ? "vaulted" : scriptId === "liked-songs-mirror" ? "liked" : undefined;
 
   if (!script) {
@@ -50,9 +52,13 @@ export default function ScriptDetail() {
     }
 
     setIsRunning(true);
+    setLastError("");
+    setLastOutput("");
     runScript(runnableScript)
       .then((data) => {
         const text = JSON.stringify(data);
+        setLastRunAt(new Date().toISOString());
+        setLastOutput(text);
         toast({
           title: "Run completed",
           description: text.length > 180 ? `${text.slice(0, 180)}...` : text,
@@ -60,8 +66,10 @@ export default function ScriptDetail() {
       })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : "Failed to dispatch workflow.";
+        setLastRunAt(new Date().toISOString());
+        setLastError(msg);
         toast({
-          title: "Dispatch failed",
+          title: "Run failed",
           description: msg,
           variant: "destructive",
         });
@@ -173,12 +181,11 @@ export default function ScriptDetail() {
                 <p className="text-primary">→ Fetching library data...</p>
                 <p className="animate-pulse">▌</p>
               </div>
-            ) : relatedRuns.length > 0 ? (
+            ) : (lastRunAt || lastOutput || lastError) ? (
               <div className="space-y-1">
-                <p className="text-muted-foreground/60">
-                  Last run: {new Date(relatedRuns[0].startedAt).toLocaleString()}
-                </p>
-                <p>{relatedRuns[0].logsPreview}</p>
+                {lastRunAt ? <p className="text-muted-foreground/60">Last run: {new Date(lastRunAt).toLocaleString()}</p> : null}
+                {lastError ? <p className="text-destructive">Error: {lastError}</p> : null}
+                {lastOutput ? <pre className="whitespace-pre-wrap break-all">{lastOutput}</pre> : null}
               </div>
             ) : (
               <p>No runs yet. Configure and click "Run Script" to get started.</p>
