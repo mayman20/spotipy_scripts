@@ -47,6 +47,18 @@ def _find_playlist_by_tag(playlists: list[dict], user_id: str, tag: str) -> dict
     return None
 
 
+def _has_tag(description: str, tag: str) -> bool:
+    return tag.lower() in (description or "").lower()
+
+
+def _ensure_playlist_tag(sp: spotipy.Spotify, playlist: dict, tag: str) -> None:
+    description = playlist.get("description") or ""
+    if _has_tag(description, tag):
+        return
+    new_description = f"{description.strip()} {tag}".strip()
+    _backoff(sp.playlist_change_details, playlist["id"], description=new_description)
+
+
 def _playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> list[str]:
     tracks: list[str] = []
     results = _backoff(sp.playlist_tracks, playlist_id, fields="items(track.id),next", limit=100)
@@ -94,6 +106,9 @@ def run_vaulted_add(sp: spotipy.Spotify, playlist_name: str = "_vaulted") -> dic
             description=f"Managed by Spotipy Scripts {VAULTED_TAG}",
         )
         existing_playlist = created
+    else:
+        # Keep existing description and append automation tag if missing.
+        _ensure_playlist_tag(sp, existing_playlist, VAULTED_TAG)
 
     existing_playlist_id = existing_playlist["id"]
     existing_playlist_name = existing_playlist.get("name") or playlist_name
@@ -144,6 +159,8 @@ def _get_or_create_playlist(
             return tagged
     for pl in playlists:
         if pl.get("name") == playlist_name and (pl.get("owner") or {}).get("id") == user_id:
+            if tag:
+                _ensure_playlist_tag(sp, pl, tag)
             return pl
     description = "Managed by Spotipy Scripts"
     if tag:
