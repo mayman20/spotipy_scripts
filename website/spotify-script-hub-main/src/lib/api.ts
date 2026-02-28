@@ -21,7 +21,8 @@ export function clearSessionToken(): void {
 
 export function getSpotifyLoginUrl(): string {
   if (!API_BASE) return "";
-  return `${API_BASE}/auth/login`;
+  const returnTo = `${window.location.origin}${window.location.pathname}`;
+  return `${API_BASE}/auth/login?return_to=${encodeURIComponent(returnTo)}`;
 }
 
 export async function fetchMe(): Promise<{ spotify_user_id: string; display_name: string }> {

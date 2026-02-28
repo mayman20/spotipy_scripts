@@ -1,6 +1,6 @@
 from urllib.parse import quote_plus, urlparse
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
@@ -31,6 +31,17 @@ def _frontend_origins(frontend_url: str) -> list[str]:
         }
     )
     return sorted(candidates)
+
+
+def _is_allowed_return_url(return_to: str) -> bool:
+    try:
+        parsed = urlparse(return_to)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return False
+        normalized_origin = f"{parsed.scheme}://{parsed.netloc}"
+    except Exception:
+        return False
+    return normalized_origin in _frontend_origins(settings.frontend_url)
 
 app.add_middleware(
     CORSMiddleware,
@@ -78,8 +89,15 @@ def healthz() -> dict:
 
 
 @app.get("/auth/login")
-def auth_login() -> RedirectResponse:
-    state = make_state(settings, {"origin": settings.frontend_url})
+def auth_login(request: Request, return_to: str | None = None) -> RedirectResponse:
+    resolved_return_to = settings.frontend_url
+    if return_to and _is_allowed_return_url(return_to):
+        resolved_return_to = return_to
+    else:
+        referer = request.headers.get("referer", "")
+        if referer and _is_allowed_return_url(referer):
+            resolved_return_to = referer
+    state = make_state(settings, {"return_to": resolved_return_to})
     return RedirectResponse(build_authorize_url(settings, state), status_code=302)
 
 
@@ -99,8 +117,12 @@ def auth_callback(code: str | None = None, state: str | None = None, error: str 
     user = store_login_tokens(settings, token_data)
     session_token = make_session_token(settings, user["spotify_user_id"])
 
+    return_to = str(payload.get("return_to") or settings.frontend_url)
+    if not _is_allowed_return_url(return_to):
+        return_to = settings.frontend_url
+
     target = (
-        f"{settings.frontend_url}"
+        f"{return_to}"
         f"?session_token={quote_plus(session_token)}"
         f"&spotify_user_id={quote_plus(user['spotify_user_id'])}"
     )
