@@ -21,7 +21,7 @@ export function clearSessionToken(): void {
 
 export function getSpotifyLoginUrl(): string {
   if (!API_BASE) return "";
-  const returnTo = `${window.location.origin}${window.location.pathname}#/dashboard`;
+  const returnTo = `${window.location.origin}${window.location.pathname}`;
   return `${API_BASE}/auth/login?return_to=${encodeURIComponent(returnTo)}`;
 }
 
@@ -52,12 +52,19 @@ export async function runScript(script: "vaulted" | "liked"): Promise<unknown> {
 
 export function captureSessionTokenFromUrl(): boolean {
   const url = new URL(window.location.href);
-  const token = url.searchParams.get("session_token");
+  let token = url.searchParams.get("session_token");
+  if (!token && url.hash.includes("?")) {
+    const hashQuery = url.hash.slice(url.hash.indexOf("?") + 1);
+    token = new URLSearchParams(hashQuery).get("session_token");
+  }
   if (!token) return false;
   setSessionToken(token);
   url.searchParams.delete("session_token");
   url.searchParams.delete("spotify_user_id");
   url.searchParams.delete("login_error");
   window.history.replaceState({}, "", url.toString());
+  if (window.location.hash !== "#/dashboard") {
+    window.location.hash = "#/dashboard";
+  }
   return true;
 }
