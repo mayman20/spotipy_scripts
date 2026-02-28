@@ -3,12 +3,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Disc3, Star, Heart, Archive, Copy, Lock, Zap, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { scripts } from "@/lib/mock-data";
+import { getSpotifyLoginUrl } from "@/lib/api";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Star, Heart, Archive, Copy, Lock, Zap,
 };
 
 export default function Index() {
+  const loginUrl = getSpotifyLoginUrl();
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-24 text-center">
@@ -22,12 +25,19 @@ export default function Index() {
           Run automations to organize playlists, liked songs, and your library.
           Connect your Spotify account to get started.
         </p>
-        <Button size="lg" asChild className="text-base px-8">
-          {/* TODO: Replace with actual Spotify OAuth flow */}
-          <Link to="/dashboard">
-            Continue with Spotify <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+        {loginUrl ? (
+          <Button size="lg" asChild className="text-base px-8">
+            <a href={loginUrl}>
+              Login with Spotify <ArrowRight className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
+        ) : (
+          <Button size="lg" asChild className="text-base px-8">
+            <Link to="/settings">
+              Configure API First <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="border-t">

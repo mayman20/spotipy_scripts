@@ -59,3 +59,27 @@ The extracted website project is in `website/`.
 Frontend build env:
 
 - `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
+
+## Local Rapid Dev
+
+Use this loop to iterate quickly without GitHub Pages deploys:
+
+1. Backend (local):
+- From repo root:
+- `python -m venv .venv`
+- `.venv\\Scripts\\activate`
+- `pip install -r requirements.txt`
+- Set env vars in your shell (or `.env`) including:
+- `SPOTIPY_CLIENT_ID`, `SPOTIPY_CLIENT_SECRET`
+- `SPOTIPY_REDIRECT_URI=http://127.0.0.1:8765/callback`
+- `DATABASE_URL`, `APP_SECRET_KEY`
+- `FRONTEND_URL=http://127.0.0.1:5173`
+- Run: `uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload`
+
+2. Frontend (local):
+- `cd website/spotify-script-hub-main`
+- Create `.env.local` with:
+- `VITE_API_BASE_URL=http://127.0.0.1:8000`
+- `npm install`
+- `npm run dev`
+- Open the local URL shown by Vite (usually `http://127.0.0.1:5173`)
