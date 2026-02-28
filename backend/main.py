@@ -1,4 +1,4 @@
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,9 +13,19 @@ from .tasks import run_liked_add, run_vaulted_add
 settings = Settings()
 app = FastAPI(title="Spotipy Scripts API", version="0.2.0")
 
+def _frontend_origins(frontend_url: str) -> list[str]:
+    if not frontend_url:
+        return ["*"]
+
+    candidates = {frontend_url.rstrip("/")}
+    parsed = urlparse(frontend_url)
+    if parsed.scheme and parsed.netloc:
+        candidates.add(f"{parsed.scheme}://{parsed.netloc}")
+    return sorted(candidates)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url] if settings.frontend_url else ["*"],
+    allow_origins=_frontend_origins(settings.frontend_url),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
