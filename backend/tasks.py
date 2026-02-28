@@ -49,6 +49,30 @@ def _find_playlist_by_tag(playlists: list[dict], user_id: str, tag: str) -> dict
     return None
 
 
+def _find_owned_playlist_by_name(playlists: list[dict], user_id: str, playlist_name: str) -> dict | None:
+    expected = (playlist_name or "").strip().casefold()
+    if not expected:
+        return None
+    for playlist in playlists:
+        if (playlist.get("owner") or {}).get("id") != user_id:
+            continue
+        name = (playlist.get("name") or "").strip().casefold()
+        if name == expected:
+            return playlist
+    return None
+
+
+def _find_owned_playlist_by_id(playlists: list[dict], user_id: str, playlist_id: str | None) -> dict | None:
+    if not playlist_id:
+        return None
+    for playlist in playlists:
+        if (playlist.get("owner") or {}).get("id") != user_id:
+            continue
+        if playlist.get("id") == playlist_id:
+            return playlist
+    return None
+
+
 def _has_tag(description: str, tag: str) -> bool:
     return tag.lower() in (description or "").lower()
 
@@ -190,17 +214,20 @@ def get_dashboard_overview(sp: spotipy.Spotify, time_range: str = "short_term") 
     }
 
 
-def run_vaulted_add(sp: spotipy.Spotify, playlist_name: str = "_vaulted") -> dict:
+def run_vaulted_add(
+    sp: spotipy.Spotify,
+    playlist_name: str = "_vaulted",
+    playlist_id: str | None = None,
+) -> dict:
     me = _backoff(sp.me)
     user_id = me["id"]
     playlists = _all_user_playlists(sp)
 
-    existing_playlist = _find_playlist_by_tag(playlists, user_id, VAULTED_TAG)
+    existing_playlist = _find_owned_playlist_by_id(playlists, user_id, playlist_id)
     if not existing_playlist:
-        for playlist in playlists:
-            if playlist.get("name") == playlist_name and (playlist.get("owner") or {}).get("id") == user_id:
-                existing_playlist = playlist
-                break
+        existing_playlist = _find_playlist_by_tag(playlists, user_id, VAULTED_TAG)
+    if not existing_playlist:
+        existing_playlist = _find_owned_playlist_by_name(playlists, user_id, playlist_name)
 
     if not existing_playlist:
         created = _backoff(
@@ -256,17 +283,23 @@ def _get_or_create_playlist(
     playlist_name: str,
     public: bool = False,
     tag: str | None = None,
+    playlist_id: str | None = None,
 ) -> dict:
     playlists = _all_user_playlists(sp)
+    explicit = _find_owned_playlist_by_id(playlists, user_id, playlist_id)
+    if explicit:
+        if tag:
+            _ensure_playlist_tag(sp, explicit, tag)
+        return explicit
     if tag:
         tagged = _find_playlist_by_tag(playlists, user_id, tag)
         if tagged:
             return tagged
-    for pl in playlists:
-        if pl.get("name") == playlist_name and (pl.get("owner") or {}).get("id") == user_id:
-            if tag:
-                _ensure_playlist_tag(sp, pl, tag)
-            return pl
+    named = _find_owned_playlist_by_name(playlists, user_id, playlist_name)
+    if named:
+        if tag:
+            _ensure_playlist_tag(sp, named, tag)
+        return named
     description = "Managed by Spotipy Scripts"
     if tag:
         description = f"{description} {tag}"
@@ -274,10 +307,17 @@ def _get_or_create_playlist(
     return created
 
 
-def run_liked_add(sp: spotipy.Spotify, playlist_name: str = "Liked Songs Mirror") -> dict:
+def run_liked_add(sp: spotipy.Spotify, playlist_name: str = "Liked Songs Mirror", playlist_id: str | None = None) -> dict:
     me = _backoff(sp.me)
     user_id = me["id"]
-    playlist = _get_or_create_playlist(sp, user_id, playlist_name, public=False, tag=LIKED_TAG)
+    playlist = _get_or_create_playlist(
+        sp,
+        user_id,
+        playlist_name,
+        public=False,
+        tag=LIKED_TAG,
+        playlist_id=playlist_id,
+    )
     playlist_id = playlist["id"]
     resolved_playlist_name = playlist.get("name") or playlist_name
 
@@ -289,3 +329,50 @@ def run_liked_add(sp: spotipy.Spotify, playlist_name: str = "Liked Songs Mirror"
         _backoff(sp.playlist_add_items, playlist_id, desired[i : i + 100])
 
     return {"playlist_id": playlist_id, "playlist_name": resolved_playlist_name, "total_tracks": len(desired), "tag": LIKED_TAG}
+
+
+def get_automation_targets(sp: spotipy.Spotify) -> dict:
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    playlists = _all_user_playlists(sp)
+    owned = [p for p in playlists if (p.get("owner") or {}).get("id") == user_id]
+
+    def resolve_default(tag: str, fallback_name: str) -> tuple[str, dict | None]:
+        tagged = _find_playlist_by_tag(owned, user_id, tag)
+        if tagged:
+            return "tag", tagged
+        named = _find_owned_playlist_by_name(owned, user_id, fallback_name)
+        if named:
+            return "name", named
+        return "none", None
+
+    liked_match, liked_default = resolve_default(LIKED_TAG, "liked songs mirror")
+    vaulted_match, vaulted_default = resolve_default(VAULTED_TAG, "_vaulted")
+
+    options = []
+    for playlist in owned:
+        options.append(
+            {
+                "id": playlist.get("id"),
+                "name": playlist.get("name") or "",
+                "description": playlist.get("description") or "",
+            }
+        )
+
+    return {
+        "playlists": options,
+        "liked": {
+            "tag": LIKED_TAG,
+            "name_fallback": "Liked Songs Mirror",
+            "matched_by": liked_match,
+            "default_playlist_id": liked_default.get("id") if liked_default else None,
+            "default_playlist_name": liked_default.get("name") if liked_default else None,
+        },
+        "vaulted": {
+            "tag": VAULTED_TAG,
+            "name_fallback": "_vaulted",
+            "matched_by": vaulted_match,
+            "default_playlist_id": vaulted_default.get("id") if vaulted_default else None,
+            "default_playlist_name": vaulted_default.get("name") if vaulted_default else None,
+        },
+    }

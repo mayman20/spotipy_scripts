@@ -37,16 +37,77 @@ export async function fetchMe(): Promise<{ spotify_user_id: string; display_name
   return resp.json();
 }
 
-export async function runScript(script: "vaulted" | "liked"): Promise<unknown> {
+export async function runScript(
+  script: "vaulted" | "liked",
+  payload?: { target_playlist_id?: string; target_playlist_name?: string },
+): Promise<unknown> {
   const token = getSessionToken();
   const path = script === "vaulted" ? "/run/vaulted" : "/run/liked";
   const resp = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload || {}),
   });
   if (!resp.ok) {
     const text = await resp.text();
     throw new Error(text || `Run failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function fetchAutomationTargets(): Promise<{
+  ok: boolean;
+  targets: {
+    playlists: Array<{ id: string; name: string; description: string }>;
+    liked: {
+      tag: string;
+      name_fallback: string;
+      matched_by: "tag" | "name" | "none";
+      default_playlist_id: string | null;
+      default_playlist_name: string | null;
+    };
+    vaulted: {
+      tag: string;
+      name_fallback: string;
+      matched_by: "tag" | "name" | "none";
+      default_playlist_id: string | null;
+      default_playlist_name: string | null;
+    };
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/automation/targets`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (resp.status === 404) {
+    // Compatibility fallback for older backend deploys.
+    return {
+      ok: true,
+      targets: {
+        playlists: [],
+        liked: {
+          tag: "[spotipy:liked_mirror]",
+          name_fallback: "Liked Songs Mirror",
+          matched_by: "none",
+          default_playlist_id: null,
+          default_playlist_name: null,
+        },
+        vaulted: {
+          tag: "[spotipy:vaulted_add]",
+          name_fallback: "_vaulted",
+          matched_by: "none",
+          default_playlist_id: null,
+          default_playlist_name: null,
+        },
+      },
+    };
+  }
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || `Targets fetch failed: ${resp.status}`);
   }
   return resp.json();
 }
@@ -84,6 +145,9 @@ export async function fetchOverviewStats(timeRange: TimeRange): Promise<{
   });
   if (!resp.ok) {
     const text = await resp.text();
+    if (resp.status === 404) {
+      throw new Error("Backend endpoint /stats/overview not found. Redeploy Render backend from latest main.");
+    }
     throw new Error(text || `Stats fetch failed: ${resp.status}`);
   }
   return resp.json();

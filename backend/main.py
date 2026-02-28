@@ -3,12 +3,13 @@ from urllib.parse import quote_plus, urlparse
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 
 from .config import Settings
 from .db import delete_tokens, get_tokens, init_db
 from .security import make_session_token, make_state, read_session_token, read_state
 from .spotify_auth import build_authorize_url, exchange_code_for_tokens, get_spotify_client_for_user, store_login_tokens
-from .tasks import get_dashboard_overview, run_liked_add, run_vaulted_add
+from .tasks import get_automation_targets, get_dashboard_overview, run_liked_add, run_vaulted_add
 
 settings = Settings()
 app = FastAPI(title="Spotipy Scripts API", version="0.2.0")
@@ -158,19 +159,42 @@ def stats_overview(
     return {"ok": True, "overview": overview}
 
 
-@app.post("/run/vaulted")
-def run_vaulted(authorization: str | None = Header(default=None, alias="Authorization")) -> dict:
+@app.get("/automation/targets")
+def automation_targets(authorization: str | None = Header(default=None, alias="Authorization")) -> dict:
     spotify_user_id = _current_user_id(authorization)
     sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
-    result = run_vaulted_add(sp)
+    targets = get_automation_targets(sp)
+    return {"ok": True, "targets": targets}
+
+
+class RunRequest(BaseModel):
+    target_playlist_id: str | None = None
+    target_playlist_name: str | None = None
+
+
+@app.post("/run/vaulted")
+def run_vaulted(
+    body: RunRequest | None = None,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    playlist_name = body.target_playlist_name if body and body.target_playlist_name else "_vaulted"
+    playlist_id = body.target_playlist_id if body and body.target_playlist_id else None
+    result = run_vaulted_add(sp, playlist_name=playlist_name, playlist_id=playlist_id)
     return {"ok": True, "script": "vaulted_add", "result": result}
 
 
 @app.post("/run/liked")
-def run_liked(authorization: str | None = Header(default=None, alias="Authorization")) -> dict:
+def run_liked(
+    body: RunRequest | None = None,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
     spotify_user_id = _current_user_id(authorization)
     sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
-    result = run_liked_add(sp)
+    playlist_name = body.target_playlist_name if body and body.target_playlist_name else "Liked Songs Mirror"
+    playlist_id = body.target_playlist_id if body and body.target_playlist_id else None
+    result = run_liked_add(sp, playlist_name=playlist_name, playlist_id=playlist_id)
     return {"ok": True, "script": "liked_add", "result": result}
 
 
