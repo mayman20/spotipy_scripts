@@ -5,7 +5,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { fetchGenrePlaylistRecommendations, fetchOverviewStats, fetchTopStats, TimeRange } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Disc3, Heart, ListMusic, Plus } from "lucide-react";
+import { Disc3, ExternalLink, Heart, ListMusic, Plus } from "lucide-react";
 
 type Overview = {
   time_range: TimeRange;
@@ -259,7 +259,7 @@ export default function Dashboard() {
                         {group.playlists.slice(0, 4).map((pl) => (
                           <a
                             key={pl.id}
-                            href={pl.open_url || pl.url}
+                            href={`https://open.spotify.com/playlist/${pl.id}`}
                             target="_blank"
                             rel="noreferrer"
                             className="flex items-center gap-3 rounded-md border border-border p-2 hover:bg-muted/50 transition-colors"
@@ -272,7 +272,10 @@ export default function Dashboard() {
                             <div className="min-w-0">
                               <p className="text-sm font-medium truncate">{pl.name}</p>
                               <p className="text-xs text-muted-foreground truncate">{pl.owner_name || "Spotify"}</p>
-                              <p className="text-xs text-primary underline">Open in Spotify</p>
+                              <p className="text-xs text-primary underline inline-flex items-center gap-1">
+                                <ExternalLink className="h-3 w-3" />
+                                Open in Spotify
+                              </p>
                             </div>
                           </a>
                         ))}
