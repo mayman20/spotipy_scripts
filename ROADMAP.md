@@ -46,7 +46,16 @@
   - `/automation/targets` -> 401 (route exists)
 - Verified latest successful GitHub Pages deploy currently points to commit `5b70ff2`.
 - Confirmed additional local, uncommitted backend/frontend changes exist and must be pushed for live site parity.
-- Action taken: preparing full local->main sync and deploy verification.
+- Action taken: completed full local->main sync in commit `22b903e`.
+- GitHub Pages deploy for `22b903e` completed successfully (workflow run `22801166898`).
+- Live frontend bundle check confirmed latest features are present (includes `Mood Timeline` UI text).
+- Render backend is not fully synced yet (new routes still 404):
+  - `/stats/recently-played`
+  - `/search/artists`
+  - `/stats/artist-catalog`
+  - `/stats/genre-breakdown`
+  - `/stats/mood-timeline`
+- Required next action: trigger/restart Render web service deploy from latest `main`.
 
 ## Recently Completed (2026-02-28 session 2)
 
