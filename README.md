@@ -50,6 +50,10 @@ The extracted website project is in `website/`.
 - GitHub Pages deploy workflow: `.github/workflows/deploy-pages.yml`
 - Script run workflow: `.github/workflows/run-spotify-script.yml`
 - Legacy workflow route is still available, but user-facing execution now runs through backend OAuth.
+- If you use the script-run GitHub Action, add repo secrets:
+- `SPOTIPY_CLIENT_ID`
+- `SPOTIPY_CLIENT_SECRET`
+- `SPOTIPY_REDIRECT_URI`
 
 ## Backend (Render)
 
@@ -62,6 +66,7 @@ The extracted website project is in `website/`.
 - `DATABASE_URL`
 - `APP_SECRET_KEY`
 - `FRONTEND_URL` (GitHub Pages URL)
+- Spotify tokens stored in DB are encrypted at rest using a key derived from `APP_SECRET_KEY`.
 
 Frontend build env:
 

@@ -1,7 +1,10 @@
 import sqlite3
+from base64 import urlsafe_b64encode
 from datetime import datetime, timezone
+from hashlib import sha256
 
 import psycopg
+from cryptography.fernet import Fernet, InvalidToken
 
 from .config import Settings
 
@@ -14,6 +17,35 @@ def _use_sqlite(settings: Settings) -> bool:
 def _sqlite_path(settings: Settings) -> str:
     url = settings.database_url
     return url.replace("sqlite:///", "").replace("sqlite://", "") or "local_dev.db"
+
+
+def _cipher(settings: Settings) -> Fernet:
+    # Deterministic Fernet key derived from APP_SECRET_KEY so no extra env var is required.
+    key_material = sha256(settings.app_secret_key.encode("utf-8")).digest()
+    return Fernet(urlsafe_b64encode(key_material))
+
+
+def _encrypt_token(settings: Settings, token: str) -> str:
+    if not token:
+        return token
+    if token.startswith("enc::"):
+        return token
+    enc = _cipher(settings).encrypt(token.encode("utf-8")).decode("utf-8")
+    return f"enc::{enc}"
+
+
+def _decrypt_token(settings: Settings, token: str) -> str:
+    if not token:
+        return token
+    if not token.startswith("enc::"):
+        # Backward compatibility with older plaintext rows.
+        return token
+    payload = token[5:]
+    try:
+        return _cipher(settings).decrypt(payload.encode("utf-8")).decode("utf-8")
+    except (InvalidToken, ValueError):
+        # If APP_SECRET_KEY changed, fail closed by returning empty string.
+        return ""
 
 
 def init_db(settings: Settings) -> None:
@@ -57,6 +89,9 @@ def upsert_tokens(
     refresh_token: str,
     expires_at: datetime,
 ) -> None:
+    access_token_enc = _encrypt_token(settings, access_token)
+    refresh_token_enc = _encrypt_token(settings, refresh_token)
+
     if _use_sqlite(settings):
         now = datetime.now(timezone.utc).isoformat()
         with sqlite3.connect(_sqlite_path(settings)) as conn:
@@ -72,7 +107,7 @@ def upsert_tokens(
                     expires_at = excluded.expires_at,
                     updated_at = excluded.updated_at
                 """,
-                (spotify_user_id, display_name, access_token, refresh_token, expires_at.isoformat(), now),
+                (spotify_user_id, display_name, access_token_enc, refresh_token_enc, expires_at.isoformat(), now),
             )
     else:
         with psycopg.connect(settings.database_url) as conn:
@@ -90,7 +125,7 @@ def upsert_tokens(
                         expires_at = EXCLUDED.expires_at,
                         updated_at = NOW()
                     """,
-                    (spotify_user_id, display_name, access_token, refresh_token, expires_at),
+                    (spotify_user_id, display_name, access_token_enc, refresh_token_enc, expires_at),
                 )
                 conn.commit()
 
@@ -112,8 +147,8 @@ def get_tokens(settings: Settings, spotify_user_id: str) -> dict | None:
             return {
                 "spotify_user_id": row["spotify_user_id"],
                 "display_name": row["display_name"] or "",
-                "access_token": row["access_token"],
-                "refresh_token": row["refresh_token"],
+                "access_token": _decrypt_token(settings, row["access_token"]),
+                "refresh_token": _decrypt_token(settings, row["refresh_token"]),
                 "expires_at": expires_at,
             }
     else:
@@ -130,8 +165,8 @@ def get_tokens(settings: Settings, spotify_user_id: str) -> dict | None:
                 return {
                     "spotify_user_id": row[0],
                     "display_name": row[1] or "",
-                    "access_token": row[2],
-                    "refresh_token": row[3],
+                    "access_token": _decrypt_token(settings, row[2]),
+                    "refresh_token": _decrypt_token(settings, row[3]),
                     "expires_at": row[4],
                 }
 
