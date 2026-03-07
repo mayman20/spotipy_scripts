@@ -14,3 +14,5 @@ localhost.pem
 localhost-key.pem
 mkcert.exe
 _backup_*/
+scripts/monthly_recommend/monthly_recommend_assets/.cache*
+scripts/monthly_recommend/monthly_recommend_assets/.ipynb_checkpoints/
