@@ -19,6 +19,7 @@ from .tasks import (
     get_dashboard_overview,
     get_genre_breakdown,
     get_genre_playlist_recommendations,
+    get_listening_pattern,
     get_mood_timeline,
     get_recently_played,
     get_top_lists,
@@ -250,6 +251,16 @@ def stats_recently_played(
     spotify_user_id = _current_user_id(authorization)
     sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
     data = get_recently_played(sp)
+    return {"ok": True, "data": data}
+
+
+@app.get("/stats/listening-pattern")
+def stats_listening_pattern(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    data = get_listening_pattern(sp)
     return {"ok": True, "data": data}
 
 

@@ -240,6 +240,26 @@ export async function fetchRecentlyPlayed(): Promise<{
   return resp.json();
 }
 
+export async function fetchListeningPattern(): Promise<{
+  ok: boolean;
+  data: {
+    timezone: string;
+    total_events: number;
+    max_cell: number;
+    has_enough_data: boolean;
+    day_labels: string[];
+    hours: number[];
+    grid: number[][];
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/stats/listening-pattern`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`Listening pattern fetch failed: ${resp.status}`);
+  return resp.json();
+}
+
 export async function searchArtists(q: string): Promise<{
   ok: boolean;
   data: {

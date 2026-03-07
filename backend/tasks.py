@@ -351,6 +351,49 @@ def get_recently_played(sp: spotipy.Spotify) -> dict:
     return _cache_set(cache_key, payload, ttl=60)
 
 
+def get_listening_pattern(sp: spotipy.Spotify) -> dict:
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    cache_key = f"listening_pattern:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    # Spotify recently-played endpoint currently provides up to ~50 events.
+    results = _backoff(sp.current_user_recently_played, limit=50)
+    items = (results or {}).get("items") or []
+
+    day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    grid = [[0 for _ in range(24)] for _ in range(7)]
+    total_events = 0
+
+    for item in items:
+        played_at = (item or {}).get("played_at") or ""
+        dt = _parse_spotify_date(played_at)
+        if not dt:
+            continue
+        # Keep UTC for consistency since user timezone is not directly provided by Spotify here.
+        dt_utc = dt.astimezone(timezone.utc)
+        day_idx = dt_utc.weekday()  # Monday=0
+        hour = dt_utc.hour
+        grid[day_idx][hour] += 1
+        total_events += 1
+
+    max_cell = max((value for row in grid for value in row), default=0)
+    has_enough_data = total_events >= 20
+
+    payload = {
+        "timezone": "UTC",
+        "total_events": total_events,
+        "max_cell": max_cell,
+        "has_enough_data": has_enough_data,
+        "day_labels": day_names,
+        "hours": list(range(24)),
+        "grid": grid,
+    }
+    return _cache_set(cache_key, payload, ttl=120)
+
+
 def search_artists(sp: spotipy.Spotify, query: str, limit: int = 6) -> dict:
     if not (query or "").strip():
         return {"artists": []}

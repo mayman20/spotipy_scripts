@@ -7,6 +7,7 @@ import {
   fetchOverviewStats,
   fetchTopStats,
   fetchRecentlyPlayed,
+  fetchListeningPattern,
   searchArtists,
   fetchArtistCatalog,
   fetchGenreBreakdown,
@@ -86,6 +87,16 @@ type RecentTrack = {
   artists: string[];
   image_url: string | null;
   played_at: string;
+};
+
+type ListeningPattern = {
+  timezone: string;
+  total_events: number;
+  max_cell: number;
+  has_enough_data: boolean;
+  day_labels: string[];
+  hours: number[];
+  grid: number[][];
 };
 
 type ArtistResult = {
@@ -181,6 +192,8 @@ export default function Dashboard() {
   const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
   const [loadingRecent, setLoadingRecent] = useState(false);
   const [showAllRecent, setShowAllRecent] = useState(false);
+  const [listeningPattern, setListeningPattern] = useState<ListeningPattern | null>(null);
+  const [loadingPattern, setLoadingPattern] = useState(false);
 
   // Artist catalog search
   const [artistQuery, setArtistQuery] = useState("");
@@ -252,6 +265,12 @@ export default function Dashboard() {
       .then((resp) => setRecentTracks(resp.data.tracks))
       .catch(() => setRecentTracks([]))
       .finally(() => setLoadingRecent(false));
+
+    setLoadingPattern(true);
+    fetchListeningPattern()
+      .then((resp) => setListeningPattern(resp.data))
+      .catch(() => setListeningPattern(null))
+      .finally(() => setLoadingPattern(false));
 
     setLoadingGenreBreakdown(true);
     fetchGenreBreakdown()
@@ -606,6 +625,64 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* ── Listening Pattern Explorer ─────────────────────────────── */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Listening Pattern Explorer</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Heatmap by day/hour from recent listening events ({listeningPattern?.timezone || "UTC"}).
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loadingPattern ? (
+                <p className="text-sm text-muted-foreground">Loading listening pattern...</p>
+              ) : listeningPattern ? (
+                <>
+                  {!listeningPattern.has_enough_data ? (
+                    <p className="text-xs text-muted-foreground">
+                      Limited recent history ({listeningPattern.total_events} events). Heatmap may be sparse.
+                    </p>
+                  ) : null}
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[760px]">
+                      <div className="grid grid-cols-[70px_repeat(24,minmax(20px,1fr))] gap-1 items-center text-[10px] text-muted-foreground mb-1">
+                        <div />
+                        {Array.from({ length: 24 }).map((_, hour) => (
+                          <div key={`h-${hour}`} className="text-center">
+                            {hour % 3 === 0 ? hour : ""}
+                          </div>
+                        ))}
+                      </div>
+
+                      {listeningPattern.day_labels.map((day, dayIdx) => (
+                        <div key={day} className="grid grid-cols-[70px_repeat(24,minmax(20px,1fr))] gap-1 items-center mb-1">
+                          <div className="text-xs text-muted-foreground pr-2">{day}</div>
+                          {(listeningPattern.grid[dayIdx] || []).map((count, hourIdx) => {
+                            const max = Math.max(listeningPattern.max_cell, 1);
+                            const alpha = count > 0 ? 0.15 + (count / max) * 0.75 : 0.05;
+                            return (
+                              <div
+                                key={`${day}-${hourIdx}`}
+                                title={`${day} ${hourIdx}:00 - ${count} plays`}
+                                className="h-4 rounded-sm border border-zinc-800"
+                                style={{ backgroundColor: `rgba(34, 197, 94, ${alpha.toFixed(3)})` }}
+                              />
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Total events analyzed: {listeningPattern.total_events}. Darker green means more plays in that slot.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Listening pattern unavailable right now.</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* ── Artist Catalog Depth ────────────────────────────────────── */}
           <Card>
