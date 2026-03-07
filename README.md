@@ -38,6 +38,13 @@ Create/update `.env` at project root with Spotipy credentials:
 
 The extracted website project is in `website/`.
 
+## Vaulted Add Config Notes
+
+- `Minimum Plays` was removed from the web form because it was not connected to active backend logic.
+- `Auto-remove from source` is currently a planned option in the UI:
+- Intended behavior: after a track is vaulted, remove it from source playlists.
+- Current status: not yet enforced by backend execution.
+
 ## GitHub Pages + Web Trigger
 
 - GitHub Pages deploy workflow: `.github/workflows/deploy-pages.yml`

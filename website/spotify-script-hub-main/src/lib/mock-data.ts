@@ -50,7 +50,6 @@ export const scripts: Script[] = [
     description: 'Add songs meeting conditions to a "Vaulted" playlist.',
     icon: 'Lock',
     configFields: [
-      { name: 'minPlays', label: 'Minimum Plays', type: 'number', defaultValue: 50 },
       { name: 'targetPlaylist', label: 'Vault Playlist', type: 'select', options: ['Create New', 'The Vault', 'Favorites Vault'] },
       { name: 'autoRemove', label: 'Auto-remove from source', type: 'toggle', defaultValue: false },
     ],

@@ -57,6 +57,16 @@
   - `/stats/mood-timeline`
 - Required next action: trigger/restart Render web service deploy from latest `main`.
 
+### 2026-03-07 (UX + Vaulted Config Pass)
+- Completed checklist item: audited backend/frontend architecture and confirmed current run flow.
+- Completed checklist item: removed `Minimum Plays` from Vaulted Add UI (it was not wired to backend logic).
+- Completed checklist item: added explicit UI + README note that `Auto-remove from source` is planned and not yet enforced by backend.
+- Completed checklist item: improved visual grouping on dashboard with subtle dark tonal separation:
+  - Top Artists rows now use alternating dark tones and bordered row cards
+  - Top Tracks rows now use alternating dark tones and bordered row cards
+  - Genre Playlist Picks now use per-genre grouped dark containers with stronger internal card contrast
+- Completed checklist item: prepared expanded recommendation backlog (below) for interactive insights and new script ideas.
+
 ## Recently Completed (2026-02-28 session 2)
 
 - Fixed `added_7d` / `added_30d` counters (dead-code bug in `_parse_spotify_date`)
@@ -77,6 +87,7 @@
 - Mood Timeline may show “unavailable” if Spotify app was created after Nov 27, 2024 (audio_features deprecated).
 - Genre Breakdown scans up to 1,000 liked songs — may be slow on first load for large libraries.
 - Artist Catalog Depth only includes studio albums (no singles/EPs/compilations by design).
+- `Auto-remove from source` in Vaulted Add is currently UI-only and not implemented in backend task execution.
 
 ## Next Debug Tasks
 
@@ -84,6 +95,70 @@
 - Test `added_7d` / `added_30d` fix in production (was already fixed locally).
 
 ## Future Additions
+
+### Priority Recommendations (Interactive Insights)
+
+- **Listening Pattern Explorer**
+- Why useful: shows day-of-week and hour-of-day trends to explain when user listens most.
+- Spotify data needed: recently played timestamps, saved track timestamps.
+- Difficulty: M
+- Feasible now: Yes (recent history is capped, but enough for meaningful trends).
+
+- **Genre Drift Timeline**
+- Why useful: reveals how top genres change across 4 weeks, 6 months, 1 year.
+- Spotify data needed: top artists by time range + artist genres.
+- Difficulty: M
+- Feasible now: Yes.
+
+- **Track Longevity Score**
+- Why useful: identifies tracks that stay in top lists over multiple time ranges.
+- Spotify data needed: top tracks short/medium/long term.
+- Difficulty: S
+- Feasible now: Yes.
+
+- **Playlist Freshness Monitor**
+- Why useful: flags stale playlists that have not changed in X days.
+- Spotify data needed: user playlists + last modified proxies (snapshot_id changes over time).
+- Difficulty: M
+- Feasible now: Partially (requires storing snapshots/history in DB).
+
+- **Artist Discovery Ratio**
+- Why useful: compares repeat artists vs newly discovered artists month to month.
+- Spotify data needed: top artists + recently played/saved history snapshots.
+- Difficulty: M
+- Feasible now: Yes (better with DB snapshots).
+
+### Priority Recommendations (Library/Automation Scripts)
+
+- **Stale Playlist Cleaner**
+- Why useful: move inactive playlists into archive folder automatically.
+- Spotify data needed: user playlists + local run history metadata.
+- Difficulty: M
+- Feasible now: Yes.
+
+- **Cross-Playlist Duplicate Resolver**
+- Why useful: removes redundant track copies while keeping a preferred playlist owner.
+- Spotify data needed: playlist tracks across selected playlists.
+- Difficulty: M
+- Feasible now: Yes.
+
+- **Recent Discoveries Builder**
+- Why useful: creates rotating playlists from newly liked tracks not already in core playlists.
+- Spotify data needed: saved tracks with added_at + playlist membership checks.
+- Difficulty: M
+- Feasible now: Yes.
+
+- **Forgotten Favorites Reviver**
+- Why useful: resurfaces older liked tracks not played recently.
+- Spotify data needed: liked tracks + recently played overlap.
+- Difficulty: M
+- Feasible now: Yes (within recent-play limits).
+
+- **Auto-Tag Playlist Classifier**
+- Why useful: automatically applies standardized `[spotipy:...]` tags for script targeting.
+- Spotify data needed: playlist metadata + optional track-level heuristics.
+- Difficulty: S
+- Feasible now: Yes.
 
 ### Dashboard
 - **Listening Heatmap** — GitHub-style calendar of tracks added per day over the last year

@@ -223,13 +223,28 @@ export default function ScriptDetail() {
                 )
               )}
               {field.type === "toggle" && (
-                <Switch
-                  id={field.name}
-                  defaultChecked={field.defaultValue as boolean}
-                />
+                <>
+                  <Switch
+                    id={field.name}
+                    defaultChecked={field.defaultValue as boolean}
+                  />
+                  {scriptId === "vaulted-add" && field.name === "autoRemove" ? (
+                    <p className="text-xs text-muted-foreground">
+                      Planned behavior: remove songs from source playlists after they are vaulted.
+                      Current status: not active in backend execution yet.
+                    </p>
+                  ) : null}
+                </>
               )}
             </div>
           ))}
+
+          {scriptId === "vaulted-add" ? (
+            <p className="text-xs text-muted-foreground">
+              Vaulted Add currently syncs a target vault from your eligible playlists and liked tracks.
+              The old "Minimum Plays" field was removed because it was not used by the backend logic.
+            </p>
+          ) : null}
 
           <Separator />
 

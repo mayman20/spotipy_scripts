@@ -143,6 +143,20 @@ const PIE_COLORS = [
   "#f97316", "#8b5cf6", "#14b8a6", "#ef4444", "#84cc16",
 ];
 
+const LIST_ROW_TONES = [
+  "bg-zinc-950/20 border-zinc-900/60",
+  "bg-zinc-900/30 border-zinc-800/70",
+  "bg-zinc-950/15 border-zinc-900/50",
+];
+
+const GENRE_GROUP_TONES = [
+  "bg-zinc-950/35 border-zinc-900/70",
+  "bg-zinc-900/35 border-zinc-800/70",
+  "bg-zinc-950/50 border-zinc-800/60",
+  "bg-zinc-900/45 border-zinc-700/60",
+  "bg-zinc-950/60 border-zinc-700/50",
+];
+
 const MOOD_RANGE_LABELS: Record<TimeRange, string> = {
   short_term: "4wk",
   medium_term: "6mo",
@@ -412,7 +426,10 @@ export default function Dashboard() {
               <CardContent className="space-y-3">
                 {loadingTop ? <p className="text-sm text-muted-foreground">Loading...</p> : null}
                 {!loadingTop && visibleArtists.map((artist, idx) => (
-                  <div key={artist.id || artist.name} className="flex items-center gap-3">
+                  <div
+                    key={artist.id || artist.name}
+                    className={`flex items-center gap-3 rounded-md border px-2.5 py-2 ${LIST_ROW_TONES[idx % LIST_ROW_TONES.length]}`}
+                  >
                     <span className="w-5 text-xs text-muted-foreground">{idx + 1}</span>
                     {artist.image_url ? (
                       <img src={artist.image_url} alt={artist.name} className="h-8 w-8 rounded object-cover" />
@@ -442,7 +459,10 @@ export default function Dashboard() {
               <CardContent className="space-y-3">
                 {loadingTop ? <p className="text-sm text-muted-foreground">Loading...</p> : null}
                 {!loadingTop && visibleTracks.map((track, idx) => (
-                  <div key={track.id || track.name} className="flex items-center gap-3">
+                  <div
+                    key={track.id || track.name}
+                    className={`flex items-center gap-3 rounded-md border px-2.5 py-2 ${LIST_ROW_TONES[idx % LIST_ROW_TONES.length]}`}
+                  >
                     <span className="w-5 text-xs text-muted-foreground">{idx + 1}</span>
                     {track.image_url ? (
                       <img src={track.image_url} alt={track.name} className="h-8 w-8 rounded object-cover" />
@@ -669,8 +689,11 @@ export default function Dashboard() {
                     <p className="text-sm text-muted-foreground">Loading recommendations...</p>
                   ) : genreRecs?.recommendations?.length ? (
                     <div className="space-y-4">
-                      {genreRecs.recommendations.map((group) => (
-                        <div key={group.genre} className="space-y-2">
+                      {genreRecs.recommendations.map((group, groupIdx) => (
+                        <div
+                          key={group.genre}
+                          className={`space-y-2 rounded-lg border p-3 ${GENRE_GROUP_TONES[groupIdx % GENRE_GROUP_TONES.length]}`}
+                        >
                           <p className="text-sm font-semibold capitalize">{group.genre}</p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {group.playlists.slice(0, 4).map((pl) => (
@@ -679,7 +702,7 @@ export default function Dashboard() {
                                 href={pl.open_url || pl.url || `https://open.spotify.com/playlist/${pl.id}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="flex items-center gap-3 rounded-md border border-border p-2 hover:bg-muted/50 transition-colors"
+                                className="flex items-center gap-3 rounded-md border border-zinc-700/60 bg-zinc-950/45 p-2 hover:bg-zinc-900/55 transition-colors"
                               >
                                 {pl.image_url ? (
                                   <img src={pl.image_url} alt={pl.name} className="h-10 w-10 rounded object-cover flex-shrink-0" />
