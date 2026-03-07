@@ -84,6 +84,8 @@ type RecentTrack = {
 };
 
 type ListeningPattern = {
+  source: "recently_played" | "saved_tracks_added_at";
+  note: string | null;
   timezone: string;
   total_events: number;
   max_cell: number;
@@ -501,7 +503,7 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-base">Listening Pattern Explorer</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Heatmap by day/hour from recent listening events ({listeningPattern?.timezone || "UTC"}).
+                  Heatmap by day/hour ({listeningPattern?.timezone || "UTC"}).
                 </p>
               </CardHeader>
               <CardContent>
@@ -509,6 +511,9 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Loading listening pattern...</p>
                 ) : listeningPattern ? (
                   <>
+                    {listeningPattern.note ? (
+                      <p className="text-xs text-muted-foreground">{listeningPattern.note}</p>
+                    ) : null}
                     {!listeningPattern.has_enough_data ? (
                       <p className="text-xs text-muted-foreground">
                         Limited recent history ({listeningPattern.total_events} events). Heatmap may be sparse.
@@ -545,6 +550,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
+                      Source: {listeningPattern.source === "recently_played" ? "Recently played" : "Liked track add-times"} ·
                       Total events analyzed: {listeningPattern.total_events}. Darker green means more plays in that slot.
                     </p>
                   </>

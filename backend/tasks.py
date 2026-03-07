@@ -256,6 +256,76 @@ def get_top_lists(sp: spotipy.Spotify, time_range: str = "short_term") -> dict:
     return _cache_set(cache_key, payload)
 
 
+def get_track_longevity(sp: spotipy.Spotify) -> dict:
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    cache_key = f"track_longevity:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    ranges = ("short_term", "medium_term", "long_term")
+    weights = {"short_term": 1.0, "medium_term": 1.2, "long_term": 1.4}
+    tracks_by_id: dict[str, dict] = {}
+
+    for time_range in ranges:
+        resp = _backoff(sp.current_user_top_tracks, time_range=time_range, limit=50)
+        for idx, track in enumerate(resp.get("items", []) or [], start=1):
+            tid = track.get("id")
+            if not tid:
+                continue
+            if tid not in tracks_by_id:
+                album = track.get("album") or {}
+                images = album.get("images") or []
+                image_url = images[0]["url"] if images else None
+                artists = [a.get("name") for a in (track.get("artists") or []) if a.get("name")]
+                tracks_by_id[tid] = {
+                    "id": tid,
+                    "name": track.get("name") or "",
+                    "artists": artists,
+                    "image_url": image_url,
+                    "popularity": track.get("popularity") or 0,
+                    "ranks": {},
+                }
+            tracks_by_id[tid]["ranks"][time_range] = idx
+
+    items = []
+    for track in tracks_by_id.values():
+        ranks = track["ranks"]
+        overlap_count = len(ranks)
+        rank_score = 0.0
+        for r, rank in ranks.items():
+            rank_score += (51 - rank) * weights.get(r, 1.0)
+        longevity_score = round(overlap_count * 100 + rank_score, 1)
+
+        items.append(
+            {
+                "id": track["id"],
+                "name": track["name"],
+                "artists": track["artists"],
+                "image_url": track["image_url"],
+                "popularity": track["popularity"],
+                "overlap_count": overlap_count,
+                "present_in": sorted(list(ranks.keys())),
+                "ranks": ranks,
+                "longevity_score": longevity_score,
+            }
+        )
+
+    # Prefer tracks appearing in multiple windows, then highest score.
+    items.sort(key=lambda x: (x["overlap_count"], x["longevity_score"]), reverse=True)
+
+    payload = {
+        "tracks": items[:25],
+        "scoring": {
+            "base_per_range": 100,
+            "rank_formula": "sum((51-rank) * weight)",
+            "weights": weights,
+        },
+    }
+    return _cache_set(cache_key, payload, ttl=300)
+
+
 def get_genre_playlist_recommendations(sp: spotipy.Spotify, time_range: str = "medium_term") -> dict:
     if time_range not in VALID_TIME_RANGES:
         time_range = "medium_term"
@@ -359,9 +429,30 @@ def get_listening_pattern(sp: spotipy.Spotify) -> dict:
     if cached:
         return cached
 
-    # Spotify recently-played endpoint currently provides up to ~50 events.
-    results = _backoff(sp.current_user_recently_played, limit=50)
-    items = (results or {}).get("items") or []
+    # Primary source: recently played (requires user-read-recently-played scope).
+    items = []
+    source = "recently_played"
+    note = None
+    try:
+        results = _backoff(sp.current_user_recently_played, limit=50)
+        items = (results or {}).get("items") or []
+    except SpotifyException as exc:
+        # Fallback when scope is missing or endpoint unavailable.
+        if exc.http_status in (401, 403):
+            source = "saved_tracks_added_at"
+            note = "Using liked-track added timestamps because recently played scope is unavailable."
+            items = []
+            saved = _backoff(sp.current_user_saved_tracks, limit=50, offset=0)
+            pages = 0
+            while saved and pages < 4:  # up to ~200 records for lightweight fallback
+                for it in (saved.get("items") or []):
+                    items.append({"played_at": (it or {}).get("added_at") or ""})
+                if not saved.get("next"):
+                    break
+                saved = _backoff(sp.next, saved)
+                pages += 1
+        else:
+            raise
 
     day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     grid = [[0 for _ in range(24)] for _ in range(7)]
@@ -383,6 +474,8 @@ def get_listening_pattern(sp: spotipy.Spotify) -> dict:
     has_enough_data = total_events >= 20
 
     payload = {
+        "source": source,
+        "note": note,
         "timezone": "UTC",
         "total_events": total_events,
         "max_cell": max_cell,

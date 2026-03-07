@@ -243,6 +243,8 @@ export async function fetchRecentlyPlayed(): Promise<{
 export async function fetchListeningPattern(): Promise<{
   ok: boolean;
   data: {
+    source: "recently_played" | "saved_tracks_added_at";
+    note: string | null;
     timezone: string;
     total_events: number;
     max_cell: number;
