@@ -11,7 +11,6 @@ import {
   searchArtists,
   fetchArtistCatalog,
   fetchGenreBreakdown,
-  fetchMoodTimeline,
   TimeRange,
 } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,11 +25,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
 } from "recharts";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -133,22 +127,6 @@ type GenreBreakdown = {
   songs_scanned: number;
 };
 
-type MoodPoint = {
-  time_range: TimeRange;
-  energy: number | null;
-  valence: number | null;
-  danceability: number | null;
-  acousticness: number | null;
-};
-
-type ProxyMoodPoint = {
-  time_range: TimeRange;
-  popularity: number | null;
-  explicitness: number | null;
-  freshness: number | null;
-  length: number | null;
-};
-
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const ranges: Array<{ value: TimeRange; label: string }> = [
@@ -164,12 +142,6 @@ const PIE_COLORS = [
 
 const LIST_ROW_CLASS = "rounded-md border border-zinc-800/70 bg-zinc-950/25 px-2.5 py-2";
 const GENRE_GROUP_CLASS = "space-y-2 rounded-lg border border-zinc-700/70 bg-zinc-950/35 p-3";
-
-const MOOD_RANGE_LABELS: Record<TimeRange, string> = {
-  short_term: "4wk",
-  medium_term: "6mo",
-  long_term: "1yr",
-};
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -208,14 +180,6 @@ export default function Dashboard() {
   // Genre breakdown
   const [genreBreakdown, setGenreBreakdown] = useState<GenreBreakdown | null>(null);
   const [loadingGenreBreakdown, setLoadingGenreBreakdown] = useState(false);
-
-  // Mood timeline
-  const [moodTimeline, setMoodTimeline] = useState<MoodPoint[]>([]);
-  const [proxyMoodTimeline, setProxyMoodTimeline] = useState<ProxyMoodPoint[]>([]);
-  const [moodMode, setMoodMode] = useState<"audio_features" | "proxy">("audio_features");
-  const [moodError, setMoodError] = useState<string | null>(null);
-  const [moodNotice, setMoodNotice] = useState<string | null>(null);
-  const [loadingMood, setLoadingMood] = useState(false);
 
   // ── Effects ──────────────────────────────────────────────────────────────
 
@@ -278,34 +242,6 @@ export default function Dashboard() {
       .catch(() => setGenreBreakdown(null))
       .finally(() => setLoadingGenreBreakdown(false));
 
-    setLoadingMood(true);
-    fetchMoodTimeline()
-      .then((resp) => {
-        if (resp.data.mode === "proxy") {
-          setMoodMode("proxy");
-          setProxyMoodTimeline(resp.data.proxy_timeline || []);
-          setMoodTimeline([]);
-          setMoodError(null);
-          setMoodNotice("Spotify audio-features API is unavailable for this app. Showing proxy listening signals instead.");
-          return;
-        }
-        setMoodMode("audio_features");
-        setProxyMoodTimeline([]);
-        setMoodNotice(null);
-        if (resp.data.error) {
-          setMoodError("Mood timeline data is unavailable right now.");
-          setMoodTimeline([]);
-        } else {
-          setMoodError(null);
-          setMoodTimeline(resp.data.timeline);
-        }
-      })
-      .catch(() => {
-        setMoodError("Mood timeline failed to load.");
-        setMoodTimeline([]);
-        setProxyMoodTimeline([]);
-      })
-      .finally(() => setLoadingMood(false));
   }, [user]);
 
   // Debounced artist search
@@ -349,22 +285,6 @@ export default function Dashboard() {
     ? (topStats?.top_tracks || []).slice(0, 25)
     : (topStats?.top_tracks || []).slice(0, 5);
   const visibleRecent = showAllRecent ? recentTracks.slice(0, 25) : recentTracks.slice(0, 5);
-
-  const moodChartData = moodMode === "proxy"
-    ? proxyMoodTimeline.map((pt) => ({
-      label: MOOD_RANGE_LABELS[pt.time_range],
-      Popularity: pt.popularity != null ? Math.round(pt.popularity * 100) : null,
-      Explicitness: pt.explicitness != null ? Math.round(pt.explicitness * 100) : null,
-      Freshness: pt.freshness != null ? Math.round(pt.freshness * 100) : null,
-      "Track Length": pt.length != null ? Math.round(pt.length * 100) : null,
-    }))
-    : moodTimeline.map((pt) => ({
-      label: MOOD_RANGE_LABELS[pt.time_range],
-      Energy: pt.energy != null ? Math.round(pt.energy * 100) : null,
-      Valence: pt.valence != null ? Math.round(pt.valence * 100) : null,
-      Danceability: pt.danceability != null ? Math.round(pt.danceability * 100) : null,
-      Acousticness: pt.acousticness != null ? Math.round(pt.acousticness * 100) : null,
-    }));
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -527,7 +447,7 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* ── Genre Breakdown + Mood Timeline ────────────────────────── */}
+          {/* ── Genre Breakdown + Listening Pattern Explorer ────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Genre Breakdown Pie */}
             <Card>
@@ -576,113 +496,64 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Mood Timeline Line Chart */}
+            {/* Listening Pattern Explorer */}
             <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Mood Timeline</CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    {moodMode === "proxy"
-                      ? "Proxy listening signals across time ranges (0–100)"
-                      : "Audio features across time ranges (0–100)"}
-                  </p>
-                </CardHeader>
+              <CardHeader>
+                <CardTitle className="text-base">Listening Pattern Explorer</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Heatmap by day/hour from recent listening events ({listeningPattern?.timezone || "UTC"}).
+                </p>
+              </CardHeader>
               <CardContent>
-                {loadingMood ? (
-                  <p className="text-sm text-muted-foreground">Loading mood data...</p>
-                ) : moodError ? (
-                  <p className="text-sm text-muted-foreground">{moodError}</p>
-                ) : moodChartData.length ? (
+                {loadingPattern ? (
+                  <p className="text-sm text-muted-foreground">Loading listening pattern...</p>
+                ) : listeningPattern ? (
                   <>
-                    {moodNotice ? <p className="text-xs text-muted-foreground mb-2">{moodNotice}</p> : null}
-                    <ResponsiveContainer width="100%" height={260}>
-                      <LineChart data={moodChartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                        <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        {moodMode === "proxy" ? (
-                          <>
-                            <Line type="monotone" dataKey="Popularity" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
-                            <Line type="monotone" dataKey="Explicitness" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} />
-                            <Line type="monotone" dataKey="Freshness" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
-                            <Line type="monotone" dataKey="Track Length" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
-                          </>
-                        ) : (
-                          <>
-                            <Line type="monotone" dataKey="Energy" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
-                            <Line type="monotone" dataKey="Valence" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} />
-                            <Line type="monotone" dataKey="Danceability" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
-                            <Line type="monotone" dataKey="Acousticness" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
-                          </>
-                        )}
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {!listeningPattern.has_enough_data ? (
+                      <p className="text-xs text-muted-foreground">
+                        Limited recent history ({listeningPattern.total_events} events). Heatmap may be sparse.
+                      </p>
+                    ) : null}
+                    <div className="overflow-x-auto">
+                      <div className="min-w-[760px]">
+                        <div className="grid grid-cols-[70px_repeat(24,minmax(20px,1fr))] gap-1 items-center text-[10px] text-muted-foreground mb-1">
+                          <div />
+                          {Array.from({ length: 24 }).map((_, hour) => (
+                            <div key={`h-${hour}`} className="text-center">
+                              {hour % 3 === 0 ? hour : ""}
+                            </div>
+                          ))}
+                        </div>
+
+                        {listeningPattern.day_labels.map((day, dayIdx) => (
+                          <div key={day} className="grid grid-cols-[70px_repeat(24,minmax(20px,1fr))] gap-1 items-center mb-1">
+                            <div className="text-xs text-muted-foreground pr-2">{day}</div>
+                            {(listeningPattern.grid[dayIdx] || []).map((count, hourIdx) => {
+                              const max = Math.max(listeningPattern.max_cell, 1);
+                              const alpha = count > 0 ? 0.15 + (count / max) * 0.75 : 0.05;
+                              return (
+                                <div
+                                  key={`${day}-${hourIdx}`}
+                                  title={`${day} ${hourIdx}:00 - ${count} plays`}
+                                  className="h-4 rounded-sm border border-zinc-800"
+                                  style={{ backgroundColor: `rgba(34, 197, 94, ${alpha.toFixed(3)})` }}
+                                />
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Total events analyzed: {listeningPattern.total_events}. Darker green means more plays in that slot.
+                    </p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No mood data available.</p>
+                  <p className="text-sm text-muted-foreground">Listening pattern unavailable right now.</p>
                 )}
               </CardContent>
             </Card>
           </div>
-
-          {/* ── Listening Pattern Explorer ─────────────────────────────── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Listening Pattern Explorer</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Heatmap by day/hour from recent listening events ({listeningPattern?.timezone || "UTC"}).
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {loadingPattern ? (
-                <p className="text-sm text-muted-foreground">Loading listening pattern...</p>
-              ) : listeningPattern ? (
-                <>
-                  {!listeningPattern.has_enough_data ? (
-                    <p className="text-xs text-muted-foreground">
-                      Limited recent history ({listeningPattern.total_events} events). Heatmap may be sparse.
-                    </p>
-                  ) : null}
-                  <div className="overflow-x-auto">
-                    <div className="min-w-[760px]">
-                      <div className="grid grid-cols-[70px_repeat(24,minmax(20px,1fr))] gap-1 items-center text-[10px] text-muted-foreground mb-1">
-                        <div />
-                        {Array.from({ length: 24 }).map((_, hour) => (
-                          <div key={`h-${hour}`} className="text-center">
-                            {hour % 3 === 0 ? hour : ""}
-                          </div>
-                        ))}
-                      </div>
-
-                      {listeningPattern.day_labels.map((day, dayIdx) => (
-                        <div key={day} className="grid grid-cols-[70px_repeat(24,minmax(20px,1fr))] gap-1 items-center mb-1">
-                          <div className="text-xs text-muted-foreground pr-2">{day}</div>
-                          {(listeningPattern.grid[dayIdx] || []).map((count, hourIdx) => {
-                            const max = Math.max(listeningPattern.max_cell, 1);
-                            const alpha = count > 0 ? 0.15 + (count / max) * 0.75 : 0.05;
-                            return (
-                              <div
-                                key={`${day}-${hourIdx}`}
-                                title={`${day} ${hourIdx}:00 - ${count} plays`}
-                                className="h-4 rounded-sm border border-zinc-800"
-                                style={{ backgroundColor: `rgba(34, 197, 94, ${alpha.toFixed(3)})` }}
-                              />
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Total events analyzed: {listeningPattern.total_events}. Darker green means more plays in that slot.
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Listening pattern unavailable right now.</p>
-              )}
-            </CardContent>
-          </Card>
 
           {/* ── Artist Catalog Depth ────────────────────────────────────── */}
           <Card>
