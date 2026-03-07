@@ -68,6 +68,11 @@ def _find_playlist_by_tag(playlists: list[dict], user_id: str, tag: str) -> dict
     return None
 
 
+def _is_excluded_playlist(playlist: dict) -> bool:
+    description = (playlist.get("description") or "")
+    return EXCLUDE_DESCRIPTION_FLAG in description
+
+
 def _find_owned_playlist_by_name(playlists: list[dict], user_id: str, playlist_name: str) -> dict | None:
     expected = (playlist_name or "").strip().casefold()
     if not expected:
@@ -128,6 +133,36 @@ def _liked_track_ids(sp: spotipy.Spotify) -> list[str]:
                 liked.append(tid)
         results = _backoff(sp.next, results) if results.get("next") else None
     return liked
+
+
+def _library_track_source(sp: spotipy.Spotify, user_id: str) -> dict:
+    cache_key = f"library_source:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    playlists = _all_user_playlists(sp)
+    vaulted = _find_playlist_by_tag(playlists, user_id, VAULTED_TAG)
+    if not vaulted:
+        vaulted = _find_owned_playlist_by_name(playlists, user_id, "_vaulted")
+
+    if vaulted:
+        track_ids = _playlist_track_ids(sp, vaulted["id"])
+        payload = {
+            "source": "vaulted_playlist",
+            "source_playlist_id": vaulted.get("id"),
+            "source_playlist_name": vaulted.get("name") or "_vaulted",
+            "track_ids": track_ids,
+        }
+        return _cache_set(cache_key, payload, ttl=180)
+
+    payload = {
+        "source": "liked_songs",
+        "source_playlist_id": None,
+        "source_playlist_name": None,
+        "track_ids": _liked_track_ids(sp),
+    }
+    return _cache_set(cache_key, payload, ttl=180)
 
 
 def _parse_spotify_date(s: str) -> datetime | None:
@@ -518,8 +553,14 @@ def get_artist_catalog_depth(sp: spotipy.Spotify, artist_id: str) -> dict:
     artist_info = _backoff(sp.artist, artist_id) or {}
     artist_name = artist_info.get("name") or ""
 
+    library = _library_track_source(sp, user_id)
+    library_track_ids = set(library.get("track_ids") or [])
+
     albums_resp = _backoff(sp.artist_albums, artist_id, album_type="album", limit=50, country="US")
-    all_albums = (albums_resp or {}).get("items") or []
+    all_albums = []
+    while albums_resp:
+        all_albums.extend((albums_resp or {}).get("items") or [])
+        albums_resp = _backoff(sp.next, albums_resp) if (albums_resp or {}).get("next") else None
 
     seen_names: set[str] = set()
     unique_albums = []
@@ -536,31 +577,48 @@ def get_artist_catalog_depth(sp: spotipy.Spotify, artist_id: str) -> dict:
             "id": album["id"],
             "name": album.get("name") or "",
             "year": (album.get("release_date") or "")[:4],
-            "total_tracks": album.get("total_tracks") or 0,
+            "total_tracks": 0,
             "image_url": image_url,
+            "saved_tracks": 0,
+            "saved": False,
         })
 
     unique_albums.sort(key=lambda a: a["year"], reverse=True)
 
-    album_ids = [a["id"] for a in unique_albums]
-    saved_flags: list[bool] = []
-    for i in range(0, len(album_ids), 50):
-        batch = album_ids[i:i + 50]
-        result = _backoff(sp.current_user_saved_albums_contains, batch)
-        saved_flags.extend(result or [False] * len(batch))
-
-    for album, saved in zip(unique_albums, saved_flags):
-        album["saved"] = saved
-
     total_albums = len(unique_albums)
-    saved_albums_count = sum(1 for s in saved_flags if s)
-    total_tracks = sum(a["total_tracks"] for a in unique_albums)
-    saved_tracks_est = sum(a["total_tracks"] for a, s in zip(unique_albums, saved_flags) if s)
-    pct = round(saved_albums_count / total_albums * 100, 1) if total_albums else 0.0
+    saved_albums_count = 0
+    total_tracks = 0
+    saved_tracks_est = 0
+
+    for album in unique_albums:
+        tracks_resp = _backoff(sp.album_tracks, album["id"], limit=50)
+        album_track_ids: list[str] = []
+        while tracks_resp:
+            for track in (tracks_resp.get("items") or []):
+                tid = (track or {}).get("id")
+                if tid:
+                    album_track_ids.append(tid)
+            tracks_resp = _backoff(sp.next, tracks_resp) if tracks_resp.get("next") else None
+
+        album_total = len(album_track_ids)
+        album_saved = sum(1 for tid in album_track_ids if tid in library_track_ids)
+        album["total_tracks"] = album_total
+        album["saved_tracks"] = album_saved
+        album["saved"] = album_saved > 0
+
+        total_tracks += album_total
+        saved_tracks_est += album_saved
+        if album["saved"]:
+            saved_albums_count += 1
+
+    pct = round(saved_tracks_est / total_tracks * 100, 1) if total_tracks else 0.0
 
     payload = {
         "artist_id": artist_id,
         "artist_name": artist_name,
+        "source": library["source"],
+        "source_playlist_id": library.get("source_playlist_id"),
+        "source_playlist_name": library.get("source_playlist_name"),
         "total_albums": total_albums,
         "saved_albums": saved_albums_count,
         "total_tracks": total_tracks,
@@ -579,18 +637,19 @@ def get_genre_breakdown(sp: spotipy.Spotify) -> dict:
     if cached:
         return cached
 
+    library = _library_track_source(sp, user_id)
+    source_track_ids = [tid for tid in (library.get("track_ids") or []) if tid]
+    scanned = len(source_track_ids)
+
     artist_ids: set[str] = set()
-    results = _backoff(sp.current_user_saved_tracks, limit=50)
-    scanned = 0
-    while results and scanned < 1000:
-        for item in (results.get("items") or []):
-            track = (item or {}).get("track") or {}
-            for artist in (track.get("artists") or []):
+    for i in range(0, len(source_track_ids), 50):
+        batch = source_track_ids[i:i + 50]
+        tracks_resp = _backoff(sp.tracks, batch)
+        for track in ((tracks_resp or {}).get("tracks") or []):
+            for artist in ((track or {}).get("artists") or []):
                 aid = (artist or {}).get("id")
                 if aid:
                     artist_ids.add(aid)
-        scanned += len(results.get("items") or [])
-        results = _backoff(sp.next, results) if results.get("next") else None
 
     genre_counts: dict[str, int] = defaultdict(int)
     artist_id_list = list(artist_ids)
@@ -606,7 +665,14 @@ def get_genre_breakdown(sp: spotipy.Spotify) -> dict:
     total = sum(c for _, c in top)
     genres = [{"genre": g, "count": c, "pct": round(c / total * 100, 1) if total else 0} for g, c in top]
 
-    payload = {"genres": genres, "total_artists": len(artist_ids), "songs_scanned": scanned}
+    payload = {
+        "genres": genres,
+        "total_artists": len(artist_ids),
+        "songs_scanned": scanned,
+        "source": library["source"],
+        "source_playlist_id": library.get("source_playlist_id"),
+        "source_playlist_name": library.get("source_playlist_name"),
+    }
     return _cache_set(cache_key, payload, ttl=600)
 
 
@@ -749,10 +815,9 @@ def run_vaulted_add(
     excluded = 0
     for playlist in playlists:
         owner_id = (playlist.get("owner") or {}).get("id")
-        description = playlist.get("description") or ""
-        if owner_id == user_id and EXCLUDE_DESCRIPTION_FLAG in description:
+        if owner_id == user_id and _is_excluded_playlist(playlist):
             excluded += 1
-        if owner_id == user_id and playlist.get("id") != existing_playlist_id and EXCLUDE_DESCRIPTION_FLAG not in description:
+        if owner_id == user_id and playlist.get("id") != existing_playlist_id and not _is_excluded_playlist(playlist):
             all_tracks.update(_playlist_track_ids(sp, playlist["id"]))
 
     all_tracks.update(_liked_track_ids(sp))
