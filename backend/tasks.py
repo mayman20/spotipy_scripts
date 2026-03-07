@@ -483,6 +483,58 @@ def get_mood_timeline(sp: spotipy.Spotify) -> dict:
         return cached
 
     timeline = []
+
+    def _release_year(track: dict) -> int | None:
+        album = (track or {}).get("album") or {}
+        date_s = (album.get("release_date") or "").strip()
+        if len(date_s) >= 4 and date_s[:4].isdigit():
+            return int(date_s[:4])
+        return None
+
+    def _proxy_point(time_range: str, tracks: list[dict]) -> dict:
+        if not tracks:
+            return {
+                "time_range": time_range,
+                "popularity": None,
+                "explicitness": None,
+                "freshness": None,
+                "length": None,
+            }
+
+        pop = [((t or {}).get("popularity") or 0) / 100 for t in tracks]
+        explicit = [1.0 if (t or {}).get("explicit") else 0.0 for t in tracks]
+        length = [min(((t or {}).get("duration_ms") or 0) / 360000, 1.0) for t in tracks]
+
+        now_year = datetime.now(timezone.utc).year
+        min_year = 1970
+        fresh_vals: list[float] = []
+        for t in tracks:
+            yr = _release_year(t)
+            if yr is None:
+                continue
+            fresh_vals.append(max(0.0, min((yr - min_year) / max(now_year - min_year, 1), 1.0)))
+
+        def _avg(vals: list[float]) -> float | None:
+            if not vals:
+                return None
+            return round(sum(vals) / len(vals), 3)
+
+        return {
+            "time_range": time_range,
+            "popularity": _avg(pop),
+            "explicitness": _avg(explicit),
+            "freshness": _avg(fresh_vals),
+            "length": _avg(length),
+        }
+
+    def _build_proxy_timeline() -> list[dict]:
+        proxy = []
+        for tr in ("short_term", "medium_term", "long_term"):
+            resp = _backoff(sp.current_user_top_tracks, time_range=tr, limit=25)
+            items = (resp.get("items") or [])
+            proxy.append(_proxy_point(tr, items))
+        return proxy
+
     for time_range in ("short_term", "medium_term", "long_term"):
         top_tracks_resp = _backoff(sp.current_user_top_tracks, time_range=time_range, limit=25)
         track_ids = [t["id"] for t in (top_tracks_resp.get("items") or []) if t and t.get("id")]
@@ -493,7 +545,12 @@ def get_mood_timeline(sp: spotipy.Spotify) -> dict:
             features_resp = _backoff(sp.audio_features, track_ids)
         except SpotifyException as exc:
             if exc.http_status in (400, 403):
-                payload = {"timeline": [], "error": "audio_features_unavailable"}
+                payload = {
+                    "mode": "proxy",
+                    "timeline": [],
+                    "proxy_timeline": _build_proxy_timeline(),
+                    "error": "audio_features_unavailable",
+                }
                 return _cache_set(cache_key, payload, ttl=3600)
             raise
         valid = [f for f in (features_resp or []) if f]
@@ -512,7 +569,12 @@ def get_mood_timeline(sp: spotipy.Spotify) -> dict:
             "acousticness": avg("acousticness"),
         })
 
-    payload = {"timeline": timeline, "error": None}
+    payload = {
+        "mode": "audio_features",
+        "timeline": timeline,
+        "proxy_timeline": [],
+        "error": None,
+    }
     return _cache_set(cache_key, payload, ttl=300)
 
 

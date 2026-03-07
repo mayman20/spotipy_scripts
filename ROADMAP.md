@@ -99,31 +99,36 @@
 ### Priority Recommendations (Interactive Insights)
 
 - **Listening Pattern Explorer**
-- Why useful: shows day-of-week and hour-of-day trends to explain when user listens most.
+- What it is: an interactive heatmap/card set for listening times by day and hour.
+- What it does: helps users understand when they are most active and compare routine shifts over time.
 - Spotify data needed: recently played timestamps, saved track timestamps.
 - Difficulty: M
 - Feasible now: Yes (recent history is capped, but enough for meaningful trends).
 
 - **Genre Drift Timeline**
-- Why useful: reveals how top genres change across 4 weeks, 6 months, 1 year.
+- What it is: a time-range comparison panel for genre ranking movement.
+- What it does: shows whether taste is stable or changing between short, medium, and long windows.
 - Spotify data needed: top artists by time range + artist genres.
 - Difficulty: M
 - Feasible now: Yes.
 
 - **Track Longevity Score**
-- Why useful: identifies tracks that stay in top lists over multiple time ranges.
+- What it is: a persistence score for tracks across multiple top-track windows.
+- What it does: highlights “core songs” that consistently stay in personal rotation.
 - Spotify data needed: top tracks short/medium/long term.
 - Difficulty: S
 - Feasible now: Yes.
 
 - **Playlist Freshness Monitor**
-- Why useful: flags stale playlists that have not changed in X days.
+- What it is: a maintenance dashboard for playlist activity age.
+- What it does: flags stale playlists and suggests archive/refresh actions.
 - Spotify data needed: user playlists + last modified proxies (snapshot_id changes over time).
 - Difficulty: M
 - Feasible now: Partially (requires storing snapshots/history in DB).
 
 - **Artist Discovery Ratio**
-- Why useful: compares repeat artists vs newly discovered artists month to month.
+- What it is: a split metric between familiar vs newly discovered artists.
+- What it does: quantifies exploration habits and trend toward discovery vs replay.
 - Spotify data needed: top artists + recently played/saved history snapshots.
 - Difficulty: M
 - Feasible now: Yes (better with DB snapshots).
@@ -131,31 +136,36 @@
 ### Priority Recommendations (Library/Automation Scripts)
 
 - **Stale Playlist Cleaner**
-- Why useful: move inactive playlists into archive folder automatically.
+- What it is: an automation job that audits playlist inactivity.
+- What it does: moves old playlists into archive folders based on configurable age thresholds.
 - Spotify data needed: user playlists + local run history metadata.
 - Difficulty: M
 - Feasible now: Yes.
 
 - **Cross-Playlist Duplicate Resolver**
-- Why useful: removes redundant track copies while keeping a preferred playlist owner.
+- What it is: a duplicate scanner across selected playlists.
+- What it does: removes redundant copies while preserving a chosen “source of truth” playlist.
 - Spotify data needed: playlist tracks across selected playlists.
 - Difficulty: M
 - Feasible now: Yes.
 
 - **Recent Discoveries Builder**
-- Why useful: creates rotating playlists from newly liked tracks not already in core playlists.
+- What it is: an auto-generated rotating “new finds” playlist workflow.
+- What it does: builds discovery playlists from recently liked tracks while avoiding existing core playlist overlap.
 - Spotify data needed: saved tracks with added_at + playlist membership checks.
 - Difficulty: M
 - Feasible now: Yes.
 
 - **Forgotten Favorites Reviver**
-- Why useful: resurfaces older liked tracks not played recently.
+- What it is: a resurfacing script for older liked tracks.
+- What it does: proposes re-discovery playlists of tracks that have fallen out of recent play history.
 - Spotify data needed: liked tracks + recently played overlap.
 - Difficulty: M
 - Feasible now: Yes (within recent-play limits).
 
 - **Auto-Tag Playlist Classifier**
-- Why useful: automatically applies standardized `[spotipy:...]` tags for script targeting.
+- What it is: a tag governance helper for playlist metadata.
+- What it does: applies/repairs standardized `[spotipy:...]` tags so automations can target playlists reliably.
 - Spotify data needed: playlist metadata + optional track-level heuristics.
 - Difficulty: S
 - Feasible now: Yes.

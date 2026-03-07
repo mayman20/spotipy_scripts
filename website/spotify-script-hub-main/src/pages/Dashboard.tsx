@@ -130,6 +130,14 @@ type MoodPoint = {
   acousticness: number | null;
 };
 
+type ProxyMoodPoint = {
+  time_range: TimeRange;
+  popularity: number | null;
+  explicitness: number | null;
+  freshness: number | null;
+  length: number | null;
+};
+
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const ranges: Array<{ value: TimeRange; label: string }> = [
@@ -143,19 +151,8 @@ const PIE_COLORS = [
   "#f97316", "#8b5cf6", "#14b8a6", "#ef4444", "#84cc16",
 ];
 
-const LIST_ROW_TONES = [
-  "bg-zinc-950/20 border-zinc-900/60",
-  "bg-zinc-900/30 border-zinc-800/70",
-  "bg-zinc-950/15 border-zinc-900/50",
-];
-
-const GENRE_GROUP_TONES = [
-  "bg-zinc-950/35 border-zinc-900/70",
-  "bg-zinc-900/35 border-zinc-800/70",
-  "bg-zinc-950/50 border-zinc-800/60",
-  "bg-zinc-900/45 border-zinc-700/60",
-  "bg-zinc-950/60 border-zinc-700/50",
-];
+const LIST_ROW_CLASS = "rounded-md border border-zinc-800/70 bg-zinc-950/25 px-2.5 py-2";
+const GENRE_GROUP_CLASS = "space-y-2 rounded-lg border border-zinc-700/70 bg-zinc-950/35 p-3";
 
 const MOOD_RANGE_LABELS: Record<TimeRange, string> = {
   short_term: "4wk",
@@ -201,7 +198,10 @@ export default function Dashboard() {
 
   // Mood timeline
   const [moodTimeline, setMoodTimeline] = useState<MoodPoint[]>([]);
+  const [proxyMoodTimeline, setProxyMoodTimeline] = useState<ProxyMoodPoint[]>([]);
+  const [moodMode, setMoodMode] = useState<"audio_features" | "proxy">("audio_features");
   const [moodError, setMoodError] = useState<string | null>(null);
+  const [moodNotice, setMoodNotice] = useState<string | null>(null);
   const [loadingMood, setLoadingMood] = useState(false);
 
   // ── Effects ──────────────────────────────────────────────────────────────
@@ -262,14 +262,30 @@ export default function Dashboard() {
     setLoadingMood(true);
     fetchMoodTimeline()
       .then((resp) => {
+        if (resp.data.mode === "proxy") {
+          setMoodMode("proxy");
+          setProxyMoodTimeline(resp.data.proxy_timeline || []);
+          setMoodTimeline([]);
+          setMoodError(null);
+          setMoodNotice("Spotify audio-features API is unavailable for this app. Showing proxy listening signals instead.");
+          return;
+        }
+        setMoodMode("audio_features");
+        setProxyMoodTimeline([]);
+        setMoodNotice(null);
         if (resp.data.error) {
-          setMoodError(resp.data.error);
+          setMoodError("Mood timeline data is unavailable right now.");
           setMoodTimeline([]);
         } else {
+          setMoodError(null);
           setMoodTimeline(resp.data.timeline);
         }
       })
-      .catch(() => setMoodTimeline([]))
+      .catch(() => {
+        setMoodError("Mood timeline failed to load.");
+        setMoodTimeline([]);
+        setProxyMoodTimeline([]);
+      })
       .finally(() => setLoadingMood(false));
   }, [user]);
 
@@ -315,13 +331,21 @@ export default function Dashboard() {
     : (topStats?.top_tracks || []).slice(0, 5);
   const visibleRecent = showAllRecent ? recentTracks.slice(0, 25) : recentTracks.slice(0, 5);
 
-  const moodChartData = moodTimeline.map((pt) => ({
-    label: MOOD_RANGE_LABELS[pt.time_range],
-    Energy: pt.energy != null ? Math.round(pt.energy * 100) : null,
-    Valence: pt.valence != null ? Math.round(pt.valence * 100) : null,
-    Danceability: pt.danceability != null ? Math.round(pt.danceability * 100) : null,
-    Acousticness: pt.acousticness != null ? Math.round(pt.acousticness * 100) : null,
-  }));
+  const moodChartData = moodMode === "proxy"
+    ? proxyMoodTimeline.map((pt) => ({
+      label: MOOD_RANGE_LABELS[pt.time_range],
+      Popularity: pt.popularity != null ? Math.round(pt.popularity * 100) : null,
+      Explicitness: pt.explicitness != null ? Math.round(pt.explicitness * 100) : null,
+      Freshness: pt.freshness != null ? Math.round(pt.freshness * 100) : null,
+      "Track Length": pt.length != null ? Math.round(pt.length * 100) : null,
+    }))
+    : moodTimeline.map((pt) => ({
+      label: MOOD_RANGE_LABELS[pt.time_range],
+      Energy: pt.energy != null ? Math.round(pt.energy * 100) : null,
+      Valence: pt.valence != null ? Math.round(pt.valence * 100) : null,
+      Danceability: pt.danceability != null ? Math.round(pt.danceability * 100) : null,
+      Acousticness: pt.acousticness != null ? Math.round(pt.acousticness * 100) : null,
+    }));
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -428,7 +452,7 @@ export default function Dashboard() {
                 {!loadingTop && visibleArtists.map((artist, idx) => (
                   <div
                     key={artist.id || artist.name}
-                    className={`flex items-center gap-3 rounded-md border px-2.5 py-2 ${LIST_ROW_TONES[idx % LIST_ROW_TONES.length]}`}
+                    className={`flex items-center gap-3 ${LIST_ROW_CLASS}`}
                   >
                     <span className="w-5 text-xs text-muted-foreground">{idx + 1}</span>
                     {artist.image_url ? (
@@ -461,7 +485,7 @@ export default function Dashboard() {
                 {!loadingTop && visibleTracks.map((track, idx) => (
                   <div
                     key={track.id || track.name}
-                    className={`flex items-center gap-3 rounded-md border px-2.5 py-2 ${LIST_ROW_TONES[idx % LIST_ROW_TONES.length]}`}
+                    className={`flex items-center gap-3 ${LIST_ROW_CLASS}`}
                   >
                     <span className="w-5 text-xs text-muted-foreground">{idx + 1}</span>
                     {track.image_url ? (
@@ -535,29 +559,47 @@ export default function Dashboard() {
 
             {/* Mood Timeline Line Chart */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Mood Timeline</CardTitle>
-                <p className="text-xs text-muted-foreground">Audio features across time ranges (0–100)</p>
-              </CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-base">Mood Timeline</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    {moodMode === "proxy"
+                      ? "Proxy listening signals across time ranges (0–100)"
+                      : "Audio features across time ranges (0–100)"}
+                  </p>
+                </CardHeader>
               <CardContent>
                 {loadingMood ? (
                   <p className="text-sm text-muted-foreground">Loading mood data...</p>
                 ) : moodError ? (
                   <p className="text-sm text-muted-foreground">{moodError}</p>
                 ) : moodChartData.length ? (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <LineChart data={moodChartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Line type="monotone" dataKey="Energy" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="Valence" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="Danceability" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="Acousticness" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <>
+                    {moodNotice ? <p className="text-xs text-muted-foreground mb-2">{moodNotice}</p> : null}
+                    <ResponsiveContainer width="100%" height={260}>
+                      <LineChart data={moodChartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                        <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                        <Tooltip />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        {moodMode === "proxy" ? (
+                          <>
+                            <Line type="monotone" dataKey="Popularity" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
+                            <Line type="monotone" dataKey="Explicitness" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} />
+                            <Line type="monotone" dataKey="Freshness" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
+                            <Line type="monotone" dataKey="Track Length" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+                          </>
+                        ) : (
+                          <>
+                            <Line type="monotone" dataKey="Energy" stroke="#6366f1" strokeWidth={2} dot={{ r: 4 }} />
+                            <Line type="monotone" dataKey="Valence" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} />
+                            <Line type="monotone" dataKey="Danceability" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
+                            <Line type="monotone" dataKey="Acousticness" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+                          </>
+                        )}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </>
                 ) : (
                   <p className="text-sm text-muted-foreground">No mood data available.</p>
                 )}
@@ -689,12 +731,12 @@ export default function Dashboard() {
                     <p className="text-sm text-muted-foreground">Loading recommendations...</p>
                   ) : genreRecs?.recommendations?.length ? (
                     <div className="space-y-4">
-                      {genreRecs.recommendations.map((group, groupIdx) => (
+                      {genreRecs.recommendations.map((group) => (
                         <div
                           key={group.genre}
-                          className={`space-y-2 rounded-lg border p-3 ${GENRE_GROUP_TONES[groupIdx % GENRE_GROUP_TONES.length]}`}
+                          className={GENRE_GROUP_CLASS}
                         >
-                          <p className="text-sm font-semibold capitalize">{group.genre}</p>
+                          <p className="text-base font-semibold tracking-wide capitalize text-zinc-100">{group.genre}</p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {group.playlists.slice(0, 4).map((pl) => (
                               <a

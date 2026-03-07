@@ -307,12 +307,20 @@ export async function fetchGenreBreakdown(): Promise<{
 export async function fetchMoodTimeline(): Promise<{
   ok: boolean;
   data: {
+    mode: "audio_features" | "proxy";
     timeline: Array<{
       time_range: TimeRange;
       energy: number | null;
       valence: number | null;
       danceability: number | null;
       acousticness: number | null;
+    }>;
+    proxy_timeline: Array<{
+      time_range: TimeRange;
+      popularity: number | null;
+      explicitness: number | null;
+      freshness: number | null;
+      length: number | null;
     }>;
     error: string | null;
   };
