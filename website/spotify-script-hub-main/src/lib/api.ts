@@ -187,6 +187,35 @@ export async function fetchTopStats(timeRange: TimeRange): Promise<{
   return resp.json();
 }
 
+export async function fetchTrackLongevity(): Promise<{
+  ok: boolean;
+  data: {
+    tracks: Array<{
+      id: string;
+      name: string;
+      artists: string[];
+      image_url: string | null;
+      popularity: number;
+      overlap_count: number;
+      present_in: Array<"short_term" | "medium_term" | "long_term">;
+      ranks: Partial<Record<"short_term" | "medium_term" | "long_term", number>>;
+      longevity_score: number;
+    }>;
+    scoring: {
+      base_per_range: number;
+      rank_formula: string;
+      weights: Record<string, number>;
+    };
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/stats/track-longevity`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`Track longevity fetch failed: ${resp.status}`);
+  return resp.json();
+}
+
 export async function fetchGenrePlaylistRecommendations(timeRange: TimeRange): Promise<{
   ok: boolean;
   data: {

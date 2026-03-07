@@ -22,6 +22,7 @@ from .tasks import (
     get_listening_pattern,
     get_mood_timeline,
     get_recently_played,
+    get_track_longevity,
     get_top_lists,
     run_liked_add,
     run_vaulted_add,
@@ -184,6 +185,16 @@ def stats_top(
     spotify_user_id = _current_user_id(authorization)
     sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
     data = get_top_lists(sp, time_range=time_range)
+    return {"ok": True, "data": data}
+
+
+@app.get("/stats/track-longevity")
+def stats_track_longevity(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    data = get_track_longevity(sp)
     return {"ok": True, "data": data}
 
 

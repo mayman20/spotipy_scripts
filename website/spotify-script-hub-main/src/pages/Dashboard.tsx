@@ -6,6 +6,7 @@ import {
   fetchGenrePlaylistRecommendations,
   fetchOverviewStats,
   fetchTopStats,
+  fetchTrackLongevity,
   fetchRecentlyPlayed,
   fetchListeningPattern,
   searchArtists,
@@ -56,6 +57,18 @@ type TopStats = {
     popularity: number;
     image_url: string | null;
   }>;
+};
+
+type LongevityTrack = {
+  id: string;
+  name: string;
+  artists: string[];
+  image_url: string | null;
+  popularity: number;
+  overlap_count: number;
+  present_in: Array<"short_term" | "medium_term" | "long_term">;
+  ranks: Partial<Record<"short_term" | "medium_term" | "long_term", number>>;
+  longevity_score: number;
 };
 
 type GenrePlaylistRecommendations = {
@@ -144,6 +157,11 @@ const PIE_COLORS = [
 
 const LIST_ROW_CLASS = "rounded-md border border-zinc-800/70 bg-zinc-950/25 px-2.5 py-2";
 const GENRE_GROUP_CLASS = "space-y-2 rounded-lg border border-zinc-700/70 bg-zinc-950/35 p-3";
+const RANGE_BADGE_LABELS: Record<"short_term" | "medium_term" | "long_term", string> = {
+  short_term: "4W",
+  medium_term: "6M",
+  long_term: "1Y",
+};
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -161,6 +179,9 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [showAllArtists, setShowAllArtists] = useState(false);
   const [showAllTracks, setShowAllTracks] = useState(false);
+  const [longevityTracks, setLongevityTracks] = useState<LongevityTrack[]>([]);
+  const [loadingLongevity, setLoadingLongevity] = useState(false);
+  const [showAllLongevity, setShowAllLongevity] = useState(false);
 
   // Recently played
   const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
@@ -195,6 +216,7 @@ export default function Dashboard() {
     }
     setShowAllArtists(false);
     setShowAllTracks(false);
+    setShowAllLongevity(false);
     setError("");
 
     setLoadingCounts(true);
@@ -214,6 +236,12 @@ export default function Dashboard() {
         setError((prev) => (prev ? `${prev} ${msg}` : msg));
       })
       .finally(() => setLoadingTop(false));
+
+    setLoadingLongevity(true);
+    fetchTrackLongevity()
+      .then((resp) => setLongevityTracks(resp.data.tracks || []))
+      .catch(() => setLongevityTracks([]))
+      .finally(() => setLoadingLongevity(false));
 
     setLoadingGenre(true);
     fetchGenrePlaylistRecommendations(timeRange)
@@ -286,6 +314,7 @@ export default function Dashboard() {
   const visibleTracks = showAllTracks
     ? (topStats?.top_tracks || []).slice(0, 25)
     : (topStats?.top_tracks || []).slice(0, 5);
+  const visibleLongevity = showAllLongevity ? longevityTracks.slice(0, 25) : longevityTracks.slice(0, 8);
   const visibleRecent = showAllRecent ? recentTracks.slice(0, 25) : recentTracks.slice(0, 5);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -448,6 +477,58 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* ── Track Longevity Score ───────────────────────────────────── */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Track Longevity Score</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Tracks that persist across 4-week, 6-month, and 1-year top lists.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loadingLongevity ? <p className="text-sm text-muted-foreground">Loading longevity scores...</p> : null}
+              {!loadingLongevity && visibleLongevity.map((track, idx) => (
+                <div key={track.id || `${track.name}-${idx}`} className={`flex items-center gap-3 ${LIST_ROW_CLASS}`}>
+                  <span className="w-5 text-xs text-muted-foreground">{idx + 1}</span>
+                  {track.image_url ? (
+                    <img src={track.image_url} alt={track.name} className="h-8 w-8 rounded object-cover" />
+                  ) : (
+                    <div className="h-8 w-8 rounded bg-muted" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{track.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{track.artists?.join(", ")}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs font-semibold text-primary">{track.longevity_score}</p>
+                    <div className="flex items-center gap-1 mt-1 justify-end">
+                      {(["short_term", "medium_term", "long_term"] as const).map((r) => (
+                        <span
+                          key={`${track.id}-${r}`}
+                          className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                            track.present_in.includes(r)
+                              ? "border-primary/60 text-primary bg-primary/10"
+                              : "border-zinc-700 text-zinc-500"
+                          }`}
+                        >
+                          {RANGE_BADGE_LABELS[r]}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!loadingLongevity && longevityTracks.length > 8 ? (
+                <Button variant="outline" size="sm" onClick={() => setShowAllLongevity((v) => !v)}>
+                  {showAllLongevity ? "Show Less" : "Show More (25)"}
+                </Button>
+              ) : null}
+              {!loadingLongevity && longevityTracks.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No longevity track data available yet.</p>
+              ) : null}
+            </CardContent>
+          </Card>
 
           {/* ── Genre Breakdown + Listening Pattern Explorer ────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
