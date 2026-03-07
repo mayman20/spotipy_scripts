@@ -8,4 +8,9 @@ scripts/**/output/
 # *.csv
 cookies.dat
 .env
+backend/.env
+local_dev.db
+localhost.pem
+localhost-key.pem
+mkcert.exe
 _backup_*/

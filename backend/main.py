@@ -1,5 +1,9 @@
 from urllib.parse import quote_plus, urlparse
 
+from dotenv import load_dotenv
+
+load_dotenv("backend/.env")
+
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -10,12 +14,17 @@ from .db import delete_tokens, get_tokens, init_db
 from .security import make_session_token, make_state, read_session_token, read_state
 from .spotify_auth import build_authorize_url, exchange_code_for_tokens, get_spotify_client_for_user, store_login_tokens
 from .tasks import (
+    get_artist_catalog_depth,
     get_automation_targets,
     get_dashboard_overview,
+    get_genre_breakdown,
     get_genre_playlist_recommendations,
+    get_mood_timeline,
+    get_recently_played,
     get_top_lists,
     run_liked_add,
     run_vaulted_add,
+    search_artists,
 )
 
 settings = Settings()
@@ -232,3 +241,55 @@ def logout(authorization: str | None = Header(default=None, alias="Authorization
     spotify_user_id = _current_user_id(authorization)
     delete_tokens(settings, spotify_user_id)
     return {"ok": True}
+
+
+@app.get("/stats/recently-played")
+def stats_recently_played(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    data = get_recently_played(sp)
+    return {"ok": True, "data": data}
+
+
+@app.get("/search/artists")
+def search_artists_endpoint(
+    q: str = "",
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    data = search_artists(sp, q)
+    return {"ok": True, "data": data}
+
+
+@app.get("/stats/artist-catalog")
+def stats_artist_catalog(
+    artist_id: str,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    data = get_artist_catalog_depth(sp, artist_id)
+    return {"ok": True, "data": data}
+
+
+@app.get("/stats/genre-breakdown")
+def stats_genre_breakdown(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    data = get_genre_breakdown(sp)
+    return {"ok": True, "data": data}
+
+
+@app.get("/stats/mood-timeline")
+def stats_mood_timeline(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    data = get_mood_timeline(sp)
+    return {"ok": True, "data": data}

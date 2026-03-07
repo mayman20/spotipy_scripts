@@ -220,6 +220,111 @@ export async function fetchGenrePlaylistRecommendations(timeRange: TimeRange): P
   return resp.json();
 }
 
+export async function fetchRecentlyPlayed(): Promise<{
+  ok: boolean;
+  data: {
+    tracks: Array<{
+      id: string;
+      name: string;
+      artists: string[];
+      image_url: string | null;
+      played_at: string;
+    }>;
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/stats/recently-played`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`Recently played fetch failed: ${resp.status}`);
+  return resp.json();
+}
+
+export async function searchArtists(q: string): Promise<{
+  ok: boolean;
+  data: {
+    artists: Array<{
+      id: string;
+      name: string;
+      genres: string[];
+      popularity: number;
+      image_url: string | null;
+    }>;
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/search/artists?q=${encodeURIComponent(q)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`Artist search failed: ${resp.status}`);
+  return resp.json();
+}
+
+export async function fetchArtistCatalog(artistId: string): Promise<{
+  ok: boolean;
+  data: {
+    artist_id: string;
+    artist_name: string;
+    total_albums: number;
+    saved_albums: number;
+    total_tracks: number;
+    saved_tracks_est: number;
+    pct: number;
+    albums: Array<{
+      id: string;
+      name: string;
+      year: string;
+      total_tracks: number;
+      image_url: string | null;
+      saved: boolean;
+    }>;
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/stats/artist-catalog?artist_id=${encodeURIComponent(artistId)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`Artist catalog fetch failed: ${resp.status}`);
+  return resp.json();
+}
+
+export async function fetchGenreBreakdown(): Promise<{
+  ok: boolean;
+  data: {
+    genres: Array<{ genre: string; count: number; pct: number }>;
+    total_artists: number;
+    songs_scanned: number;
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/stats/genre-breakdown`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`Genre breakdown fetch failed: ${resp.status}`);
+  return resp.json();
+}
+
+export async function fetchMoodTimeline(): Promise<{
+  ok: boolean;
+  data: {
+    timeline: Array<{
+      time_range: TimeRange;
+      energy: number | null;
+      valence: number | null;
+      danceability: number | null;
+      acousticness: number | null;
+    }>;
+    error: string | null;
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/stats/mood-timeline`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`Mood timeline fetch failed: ${resp.status}`);
+  return resp.json();
+}
+
 export function captureSessionTokenFromUrl(): boolean {
   const url = new URL(window.location.href);
   let token = url.searchParams.get("session_token");

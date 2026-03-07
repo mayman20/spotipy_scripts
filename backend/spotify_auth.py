@@ -14,6 +14,7 @@ ME_URL = "https://api.spotify.com/v1/me"
 SCOPES = (
     "user-library-read "
     "user-top-read "
+    "user-read-recently-played "
     "playlist-read-private "
     "playlist-read-collaborative "
     "playlist-modify-private "

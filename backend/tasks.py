@@ -133,6 +133,10 @@ def _liked_track_ids(sp: spotipy.Spotify) -> list[str]:
 def _parse_spotify_date(s: str) -> datetime | None:
     if not s:
         return None
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except Exception:
+        return None
 
 
 def _fetch_top_lists(sp: spotipy.Spotify, time_range: str, limit: int = 25) -> dict:
@@ -170,10 +174,6 @@ def _fetch_top_lists(sp: spotipy.Spotify, time_range: str, limit: int = 25) -> d
         )
 
     return {"top_artists": top_artists, "top_tracks": top_tracks}
-    try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00"))
-    except Exception:
-        return None
 
 
 def get_dashboard_overview(sp: spotipy.Spotify, time_range: str = "short_term") -> dict:
@@ -283,10 +283,12 @@ def get_genre_playlist_recommendations(sp: spotipy.Spotify, time_range: str = "m
     seen_ids: set[str] = set()
     for genre in top_genres:
         # Query Spotify playlists by genre and keep only unique IDs globally.
-        result = _backoff(sp.search, q=f'genre:"{genre}"', type="playlist", limit=8)
+        result = _backoff(sp.search, q=genre, type="playlist", limit=8)
         items = (((result or {}).get("playlists") or {}).get("items") or [])
         picks = []
         for playlist in items:
+            if not playlist:
+                continue
             pid = playlist.get("id")
             if not pid or pid in seen_ids:
                 continue
@@ -311,6 +313,207 @@ def get_genre_playlist_recommendations(sp: spotipy.Spotify, time_range: str = "m
 
     payload = {"time_range": time_range, "genres": top_genres, "recommendations": recommendations}
     return _cache_set(cache_key, payload)
+
+
+def get_recently_played(sp: spotipy.Spotify) -> dict:
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    cache_key = f"recently_played:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    results = _backoff(sp.current_user_recently_played, limit=50)
+    items = (results or {}).get("items") or []
+    tracks = []
+    seen: set[str] = set()
+    for item in items:
+        if not item:
+            continue
+        track = item.get("track") or {}
+        tid = track.get("id")
+        if not tid or tid in seen:
+            continue
+        seen.add(tid)
+        album = track.get("album") or {}
+        images = album.get("images") or []
+        image_url = images[0]["url"] if images else None
+        artists = [a.get("name") for a in (track.get("artists") or []) if a.get("name")]
+        tracks.append({
+            "id": tid,
+            "name": track.get("name") or "",
+            "artists": artists,
+            "image_url": image_url,
+            "played_at": item.get("played_at") or "",
+        })
+
+    payload = {"tracks": tracks}
+    return _cache_set(cache_key, payload, ttl=60)
+
+
+def search_artists(sp: spotipy.Spotify, query: str, limit: int = 6) -> dict:
+    if not (query or "").strip():
+        return {"artists": []}
+    result = _backoff(sp.search, q=query.strip(), type="artist", limit=limit)
+    artists = []
+    for artist in (((result or {}).get("artists") or {}).get("items") or []):
+        if not artist:
+            continue
+        images = artist.get("images") or []
+        image_url = images[0]["url"] if images else None
+        artists.append({
+            "id": artist.get("id") or "",
+            "name": artist.get("name") or "",
+            "genres": artist.get("genres") or [],
+            "popularity": artist.get("popularity") or 0,
+            "image_url": image_url,
+        })
+    return {"artists": artists}
+
+
+def get_artist_catalog_depth(sp: spotipy.Spotify, artist_id: str) -> dict:
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    cache_key = f"catalog:{user_id}:{artist_id}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    artist_info = _backoff(sp.artist, artist_id) or {}
+    artist_name = artist_info.get("name") or ""
+
+    albums_resp = _backoff(sp.artist_albums, artist_id, album_type="album", limit=50, country="US")
+    all_albums = (albums_resp or {}).get("items") or []
+
+    seen_names: set[str] = set()
+    unique_albums = []
+    for album in all_albums:
+        if not album:
+            continue
+        name = (album.get("name") or "").strip().lower()
+        if name in seen_names:
+            continue
+        seen_names.add(name)
+        images = album.get("images") or []
+        image_url = images[0]["url"] if images else None
+        unique_albums.append({
+            "id": album["id"],
+            "name": album.get("name") or "",
+            "year": (album.get("release_date") or "")[:4],
+            "total_tracks": album.get("total_tracks") or 0,
+            "image_url": image_url,
+        })
+
+    unique_albums.sort(key=lambda a: a["year"], reverse=True)
+
+    album_ids = [a["id"] for a in unique_albums]
+    saved_flags: list[bool] = []
+    for i in range(0, len(album_ids), 50):
+        batch = album_ids[i:i + 50]
+        result = _backoff(sp.current_user_saved_albums_contains, batch)
+        saved_flags.extend(result or [False] * len(batch))
+
+    for album, saved in zip(unique_albums, saved_flags):
+        album["saved"] = saved
+
+    total_albums = len(unique_albums)
+    saved_albums_count = sum(1 for s in saved_flags if s)
+    total_tracks = sum(a["total_tracks"] for a in unique_albums)
+    saved_tracks_est = sum(a["total_tracks"] for a, s in zip(unique_albums, saved_flags) if s)
+    pct = round(saved_albums_count / total_albums * 100, 1) if total_albums else 0.0
+
+    payload = {
+        "artist_id": artist_id,
+        "artist_name": artist_name,
+        "total_albums": total_albums,
+        "saved_albums": saved_albums_count,
+        "total_tracks": total_tracks,
+        "saved_tracks_est": saved_tracks_est,
+        "pct": pct,
+        "albums": unique_albums,
+    }
+    return _cache_set(cache_key, payload, ttl=300)
+
+
+def get_genre_breakdown(sp: spotipy.Spotify) -> dict:
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    cache_key = f"genre_breakdown:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    artist_ids: set[str] = set()
+    results = _backoff(sp.current_user_saved_tracks, limit=50)
+    scanned = 0
+    while results and scanned < 1000:
+        for item in (results.get("items") or []):
+            track = (item or {}).get("track") or {}
+            for artist in (track.get("artists") or []):
+                aid = (artist or {}).get("id")
+                if aid:
+                    artist_ids.add(aid)
+        scanned += len(results.get("items") or [])
+        results = _backoff(sp.next, results) if results.get("next") else None
+
+    genre_counts: dict[str, int] = defaultdict(int)
+    artist_id_list = list(artist_ids)
+    for i in range(0, len(artist_id_list), 50):
+        batch = artist_id_list[i:i + 50]
+        artists_resp = _backoff(sp.artists, batch)
+        for artist in ((artists_resp or {}).get("artists") or []):
+            for genre in ((artist or {}).get("genres") or []):
+                if genre:
+                    genre_counts[genre] += 1
+
+    top = sorted(genre_counts.items(), key=lambda kv: kv[1], reverse=True)[:10]
+    total = sum(c for _, c in top)
+    genres = [{"genre": g, "count": c, "pct": round(c / total * 100, 1) if total else 0} for g, c in top]
+
+    payload = {"genres": genres, "total_artists": len(artist_ids), "songs_scanned": scanned}
+    return _cache_set(cache_key, payload, ttl=600)
+
+
+def get_mood_timeline(sp: spotipy.Spotify) -> dict:
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    cache_key = f"mood_timeline:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    timeline = []
+    for time_range in ("short_term", "medium_term", "long_term"):
+        top_tracks_resp = _backoff(sp.current_user_top_tracks, time_range=time_range, limit=25)
+        track_ids = [t["id"] for t in (top_tracks_resp.get("items") or []) if t and t.get("id")]
+        if not track_ids:
+            timeline.append({"time_range": time_range, "energy": None, "valence": None, "danceability": None, "acousticness": None})
+            continue
+        try:
+            features_resp = _backoff(sp.audio_features, track_ids)
+        except SpotifyException as exc:
+            if exc.http_status in (400, 403):
+                payload = {"timeline": [], "error": "audio_features_unavailable"}
+                return _cache_set(cache_key, payload, ttl=3600)
+            raise
+        valid = [f for f in (features_resp or []) if f]
+        if not valid:
+            timeline.append({"time_range": time_range, "energy": None, "valence": None, "danceability": None, "acousticness": None})
+            continue
+
+        def avg(key: str) -> float:
+            return round(sum(f[key] for f in valid) / len(valid), 3)
+
+        timeline.append({
+            "time_range": time_range,
+            "energy": avg("energy"),
+            "valence": avg("valence"),
+            "danceability": avg("danceability"),
+            "acousticness": avg("acousticness"),
+        })
+
+    payload = {"timeline": timeline, "error": None}
+    return _cache_set(cache_key, payload, ttl=300)
 
 
 def run_vaulted_add(
