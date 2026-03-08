@@ -148,7 +148,7 @@ export default function ScriptDetail() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl animate-fade-in">
+    <div className="space-y-6 max-w-3xl animate-fade-in px-1 sm:px-0">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link to="/scripts">
@@ -156,7 +156,7 @@ export default function ScriptDetail() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{script.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">{script.name}</h1>
           <p className="text-muted-foreground">{script.description}</p>
         </div>
       </div>
@@ -248,14 +248,14 @@ export default function ScriptDetail() {
 
           <Separator />
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <Switch id="dry-run" checked={dryRun} onCheckedChange={setDryRun} />
               <Label htmlFor="dry-run" className="flex items-center gap-1.5">
                 <Eye className="h-3.5 w-3.5" /> Dry Run
               </Label>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 sm:justify-end">
               <Button variant="outline" disabled={isRunning}>
                 Preview Changes
               </Button>

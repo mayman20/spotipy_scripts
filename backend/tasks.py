@@ -1,6 +1,7 @@
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import spotipy
 from spotipy.exceptions import SpotifyException
@@ -493,15 +494,16 @@ def get_listening_pattern(sp: spotipy.Spotify) -> dict:
     grid = [[0 for _ in range(24)] for _ in range(7)]
     total_events = 0
 
+    local_tz = ZoneInfo("America/New_York")
     for item in items:
         played_at = (item or {}).get("played_at") or ""
         dt = _parse_spotify_date(played_at)
         if not dt:
             continue
-        # Keep UTC for consistency since user timezone is not directly provided by Spotify here.
-        dt_utc = dt.astimezone(timezone.utc)
-        day_idx = dt_utc.weekday()  # Monday=0
-        hour = dt_utc.hour
+        # Normalize to Eastern Time so dashboard displays in local U.S. time context.
+        dt_local = dt.astimezone(local_tz)
+        day_idx = dt_local.weekday()  # Monday=0
+        hour = dt_local.hour
         grid[day_idx][hour] += 1
         total_events += 1
 
@@ -511,7 +513,7 @@ def get_listening_pattern(sp: spotipy.Spotify) -> dict:
     payload = {
         "source": source,
         "note": note,
-        "timezone": "UTC",
+        "timezone": "America/New_York",
         "total_events": total_events,
         "max_cell": max_cell,
         "has_enough_data": has_enough_data,

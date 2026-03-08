@@ -163,6 +163,13 @@ const RANGE_BADGE_LABELS: Record<"short_term" | "medium_term" | "long_term", str
   long_term: "1Y",
 };
 
+function formatHourLabel(hour: number): string {
+  const normalized = ((hour % 24) + 24) % 24;
+  const suffix = normalized >= 12 ? "PM" : "AM";
+  const base = normalized % 12 || 12;
+  return `${base}${suffix}`;
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -186,6 +193,7 @@ export default function Dashboard() {
   // Recently played
   const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
   const [loadingRecent, setLoadingRecent] = useState(false);
+  const [recentError, setRecentError] = useState("");
   const [showAllRecent, setShowAllRecent] = useState(false);
   const [listeningPattern, setListeningPattern] = useState<ListeningPattern | null>(null);
   const [loadingPattern, setLoadingPattern] = useState(false);
@@ -255,9 +263,14 @@ export default function Dashboard() {
     if (!user) return;
 
     setLoadingRecent(true);
+    setRecentError("");
     fetchRecentlyPlayed()
       .then((resp) => setRecentTracks(resp.data.tracks))
-      .catch(() => setRecentTracks([]))
+      .catch((err: unknown) => {
+        setRecentTracks([]);
+        const msg = err instanceof Error ? err.message : "Failed to load recently played tracks.";
+        setRecentError(msg);
+      })
       .finally(() => setLoadingRecent(false));
 
     setLoadingPattern(true);
@@ -316,6 +329,13 @@ export default function Dashboard() {
     : (topStats?.top_tracks || []).slice(0, 5);
   const visibleLongevity = showAllLongevity ? longevityTracks.slice(0, 25) : longevityTracks.slice(0, 8);
   const visibleRecent = showAllRecent ? recentTracks.slice(0, 25) : recentTracks.slice(0, 5);
+  const listeningDayTotals = listeningPattern
+    ? listeningPattern.day_labels.map((day, idx) => ({
+        day,
+        total: (listeningPattern.grid[idx] || []).reduce((acc, n) => acc + n, 0),
+      }))
+    : [];
+  const maxDayTotal = Math.max(...listeningDayTotals.map((d) => d.total), 1);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -338,7 +358,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-xl sm:text-2xl font-bold">
             {user ? `Welcome back, ${user.display_name}` : "Welcome"}
           </h1>
           <p className="text-muted-foreground">
@@ -347,7 +367,7 @@ export default function Dashboard() {
               : "Connect your Spotify account in Settings to load dashboard stats."}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {ranges.map((r) => (
             <Button
               key={r.value}
@@ -371,7 +391,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="flex items-center gap-3">
                 <Heart className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-bold">
+                <span className="text-xl sm:text-2xl font-bold">
                   {loadingCounts ? "..." : overview?.counts.saved_tracks_total ?? "—"}
                 </span>
               </CardContent>
@@ -382,7 +402,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="flex items-center gap-3">
                 <ListMusic className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-bold">
+                <span className="text-xl sm:text-2xl font-bold">
                   {loadingCounts ? "..." : overview?.counts.playlists_owned ?? "—"}
                 </span>
               </CardContent>
@@ -393,7 +413,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="flex items-center gap-3">
                 <Plus className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-bold">
+                <span className="text-xl sm:text-2xl font-bold">
                   {loadingCounts ? "..." : overview?.counts.added_7d ?? "—"}
                 </span>
               </CardContent>
@@ -404,15 +424,15 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="flex items-center gap-3">
                 <Disc3 className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-bold">
+                <span className="text-xl sm:text-2xl font-bold">
                   {loadingCounts ? "..." : overview?.counts.added_30d ?? "—"}
                 </span>
               </CardContent>
             </Card>
           </div>
 
-          {/* ── Top Artists / Tracks ────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* ── Top Artists / Tracks / Longevity ───────────────────────── */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Top Artists</CardTitle>
@@ -476,59 +496,57 @@ export default function Dashboard() {
                 ) : null}
               </CardContent>
             </Card>
-          </div>
-
-          {/* ── Track Longevity Score ───────────────────────────────────── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Track Longevity Score</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Tracks that persist across 4-week, 6-month, and 1-year top lists.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {loadingLongevity ? <p className="text-sm text-muted-foreground">Loading longevity scores...</p> : null}
-              {!loadingLongevity && visibleLongevity.map((track, idx) => (
-                <div key={track.id || `${track.name}-${idx}`} className={`flex items-center gap-3 ${LIST_ROW_CLASS}`}>
-                  <span className="w-5 text-xs text-muted-foreground">{idx + 1}</span>
-                  {track.image_url ? (
-                    <img src={track.image_url} alt={track.name} className="h-8 w-8 rounded object-cover" />
-                  ) : (
-                    <div className="h-8 w-8 rounded bg-muted" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{track.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{track.artists?.join(", ")}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs font-semibold text-primary">{track.longevity_score}</p>
-                    <div className="flex items-center gap-1 mt-1 justify-end">
-                      {(["short_term", "medium_term", "long_term"] as const).map((r) => (
-                        <span
-                          key={`${track.id}-${r}`}
-                          className={`text-[10px] px-1.5 py-0.5 rounded border ${
-                            track.present_in.includes(r)
-                              ? "border-primary/60 text-primary bg-primary/10"
-                              : "border-zinc-700 text-zinc-500"
-                          }`}
-                        >
-                          {RANGE_BADGE_LABELS[r]}
-                        </span>
-                      ))}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Track Longevity Score</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Tracks that persist across 4-week, 6-month, and 1-year top lists.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loadingLongevity ? <p className="text-sm text-muted-foreground">Loading longevity scores...</p> : null}
+                {!loadingLongevity && visibleLongevity.map((track, idx) => (
+                  <div key={track.id || `${track.name}-${idx}`} className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 ${LIST_ROW_CLASS}`}>
+                    <span className="w-5 text-xs text-muted-foreground">{idx + 1}</span>
+                    {track.image_url ? (
+                      <img src={track.image_url} alt={track.name} className="h-8 w-8 rounded object-cover" />
+                    ) : (
+                      <div className="h-8 w-8 rounded bg-muted" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{track.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{track.artists?.join(", ")}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-semibold text-primary">{track.longevity_score}</p>
+                      <div className="flex items-center gap-1 mt-1 justify-end">
+                        {(["short_term", "medium_term", "long_term"] as const).map((r) => (
+                          <span
+                            key={`${track.id}-${r}`}
+                            className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                              track.present_in.includes(r)
+                                ? "border-primary/60 text-primary bg-primary/10"
+                                : "border-zinc-700 text-zinc-500"
+                            }`}
+                          >
+                            {RANGE_BADGE_LABELS[r]}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {!loadingLongevity && longevityTracks.length > 8 ? (
-                <Button variant="outline" size="sm" onClick={() => setShowAllLongevity((v) => !v)}>
-                  {showAllLongevity ? "Show Less" : "Show More (25)"}
-                </Button>
-              ) : null}
-              {!loadingLongevity && longevityTracks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No longevity track data available yet.</p>
-              ) : null}
-            </CardContent>
-          </Card>
+                ))}
+                {!loadingLongevity && longevityTracks.length > 8 ? (
+                  <Button variant="outline" size="sm" onClick={() => setShowAllLongevity((v) => !v)}>
+                    {showAllLongevity ? "Show Less" : "Show More (25)"}
+                  </Button>
+                ) : null}
+                {!loadingLongevity && longevityTracks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No longevity track data available yet.</p>
+                ) : null}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* ── Genre Breakdown + Listening Pattern Explorer ────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -600,13 +618,30 @@ export default function Dashboard() {
                         Limited recent history ({listeningPattern.total_events} events). Heatmap may be sparse.
                       </p>
                     ) : null}
-                    <div className="overflow-x-auto">
+                    <div className="md:hidden space-y-2">
+                      {listeningDayTotals.map((d) => (
+                        <div key={d.day} className="flex items-center gap-2">
+                          <span className="w-8 text-xs text-muted-foreground">{d.day}</span>
+                          <div className="flex-1 h-2 rounded bg-zinc-900/70 overflow-hidden">
+                            <div
+                              className="h-full bg-green-500/70"
+                              style={{ width: `${Math.round((d.total / maxDayTotal) * 100)}%` }}
+                            />
+                          </div>
+                          <span className="w-7 text-right text-xs text-muted-foreground">{d.total}</span>
+                        </div>
+                      ))}
+                      <p className="text-[11px] text-muted-foreground">
+                        Mobile summary view shown. Expand on desktop for hour-by-hour heatmap.
+                      </p>
+                    </div>
+                    <div className="hidden md:block overflow-x-auto">
                       <div className="min-w-[760px]">
                         <div className="grid grid-cols-[70px_repeat(24,minmax(20px,1fr))] gap-1 items-center text-[10px] text-muted-foreground mb-1">
                           <div />
                           {Array.from({ length: 24 }).map((_, hour) => (
                             <div key={`h-${hour}`} className="text-center">
-                              {hour % 3 === 0 ? hour : ""}
+                              {hour % 3 === 0 ? formatHourLabel(hour) : ""}
                             </div>
                           ))}
                         </div>
@@ -620,7 +655,7 @@ export default function Dashboard() {
                               return (
                                 <div
                                   key={`${day}-${hourIdx}`}
-                                  title={`${day} ${hourIdx}:00 - ${count} plays`}
+                                  title={`${day} ${formatHourLabel(hourIdx)} - ${count} plays`}
                                   className="h-4 rounded-sm border border-zinc-800"
                                   style={{ backgroundColor: `rgba(34, 197, 94, ${alpha.toFixed(3)})` }}
                                 />
@@ -848,7 +883,11 @@ export default function Dashboard() {
                       )}
                     </>
                   ) : (
-                    <p className="text-xs text-muted-foreground">No recent tracks found.</p>
+                    <p className="text-xs text-muted-foreground">
+                      {recentError
+                        ? `Could not load recently played: ${recentError}`
+                        : "No recent tracks found."}
+                    </p>
                   )}
                 </CardContent>
               </Card>
