@@ -241,8 +241,13 @@ export default function ScriptDetail() {
 
           {scriptId === "vaulted-add" ? (
             <p className="text-xs text-muted-foreground">
-              Vaulted Add currently syncs a target vault from your eligible playlists and liked tracks.
+              Vaulted Add builds a vault playlist from your eligible playlists and liked tracks, so tracks can be vaulted even when they are not liked.
               The old "Minimum Plays" field was removed because it was not used by the backend logic.
+            </p>
+          ) : null}
+          {scriptId === "liked-songs-mirror" ? (
+            <p className="text-xs text-muted-foreground">
+              Liked Songs Mirror copies your liked songs into a playlist so you can share your liked collection publicly.
             </p>
           ) : null}
 

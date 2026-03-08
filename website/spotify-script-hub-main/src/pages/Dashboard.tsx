@@ -809,6 +809,9 @@ export default function Dashboard() {
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle className="text-base">Genre Playlist Picks</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Genres are inferred from your top artists for the selected time range, then matched to Spotify playlists.
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {loadingGenre ? (

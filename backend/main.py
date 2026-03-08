@@ -1,6 +1,7 @@
 from urllib.parse import quote_plus, urlparse
 
 from dotenv import load_dotenv
+import httpx
 
 load_dotenv("backend/.env")
 
@@ -143,13 +144,27 @@ def auth_callback(code: str | None = None, state: str | None = None, error: str 
     if not payload:
         raise HTTPException(status_code=400, detail="Invalid OAuth state.")
 
-    token_data = exchange_code_for_tokens(settings, code)
-    user = store_login_tokens(settings, token_data)
-    session_token = make_session_token(settings, user["spotify_user_id"])
-
     return_to = str(payload.get("return_to") or settings.frontend_url)
     if not _is_allowed_return_url(return_to):
         return_to = settings.frontend_url
+
+    try:
+        token_data = exchange_code_for_tokens(settings, code)
+        user = store_login_tokens(settings, token_data)
+    except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code
+        # Common case: app is still in development mode and this Spotify user is not allowlisted.
+        if status == 403:
+            err = "spotify_forbidden_user_or_app_mode"
+        else:
+            err = f"spotify_http_{status}"
+        target = f"{return_to}?login_error={quote_plus(err)}"
+        return RedirectResponse(target, status_code=302)
+    except Exception:
+        target = f"{return_to}?login_error={quote_plus('spotify_auth_failed')}"
+        return RedirectResponse(target, status_code=302)
+
+    session_token = make_session_token(settings, user["spotify_user_id"])
 
     target = (
         f"{return_to}"

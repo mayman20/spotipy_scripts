@@ -27,7 +27,7 @@ export const scripts: Script[] = [
   {
     id: 'liked-songs-mirror',
     name: 'Liked Songs Mirror',
-    description: 'Mirror liked songs into a playlist for easier sorting.',
+    description: 'Copy your liked songs into a playlist so you can share them publicly.',
     icon: 'Heart',
     configFields: [
       { name: 'targetPlaylist', label: 'Target Playlist', type: 'select', options: ['Create New', 'Liked Songs Mirror', 'My Collection'] },
@@ -47,7 +47,7 @@ export const scripts: Script[] = [
   {
     id: 'vaulted-add',
     name: 'Vaulted Add',
-    description: 'Add songs meeting conditions to a "Vaulted" playlist.',
+    description: 'Build a Vaulted playlist from your library playlists, including songs that are not liked.',
     icon: 'Lock',
     configFields: [
       { name: 'targetPlaylist', label: 'Vault Playlist', type: 'select', options: ['Create New', 'The Vault', 'Favorites Vault'] },
