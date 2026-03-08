@@ -1,4 +1,4 @@
-import { LayoutDashboard, Code2, History, Settings, Disc3 } from "lucide-react";
+import { LayoutDashboard, Code2, History, Settings, Disc3, Library } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -16,6 +16,7 @@ const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, end: true },
   { title: "Scripts", url: "/scripts", icon: Code2, end: false },
   { title: "Runs", url: "/runs", icon: History, end: true },
+  { title: "Library", url: "/library", icon: Library, end: true },
   { title: "Settings", url: "/settings", icon: Settings, end: true },
 ];
 

@@ -384,6 +384,69 @@ export async function fetchMoodTimeline(): Promise<{
   return resp.json();
 }
 
+export async function fetchPlaylistFreshness(): Promise<{
+  ok: boolean;
+  data: {
+    playlists: Array<{
+      id: string;
+      name: string;
+      description: string;
+      track_count: number;
+      last_added_at: string | null;
+      days_since_activity: number;
+      freshness_score: number;
+      spotify_url: string;
+      is_vaulted_tagged: boolean;
+      is_liked_tagged: boolean;
+    }>;
+    scoring: {
+      method: string;
+      description: string;
+    };
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/stats/playlist-freshness`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`Playlist freshness fetch failed: ${resp.status}`);
+  return resp.json();
+}
+
+export async function runArchiveStale(
+  maxFreshnessScore: number,
+  prefix = "[Archive]",
+): Promise<{
+  ok: boolean;
+  script: string;
+  result: {
+    threshold: number;
+    prefix: string;
+    archived_count: number;
+    archived: Array<{
+      id: string;
+      old_name: string;
+      new_name: string;
+      freshness_score: number;
+    }>;
+  };
+}> {
+  const token = getSessionToken();
+  const resp = await fetch(`${API_BASE}/run/archive-stale`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ max_freshness_score: maxFreshnessScore, prefix }),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || `Archive stale run failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
 export function captureSessionTokenFromUrl(): boolean {
   const url = new URL(window.location.href);
   let token = url.searchParams.get("session_token");

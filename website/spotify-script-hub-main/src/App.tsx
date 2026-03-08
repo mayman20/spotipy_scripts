@@ -10,6 +10,7 @@ import Scripts from "./pages/Scripts";
 import ScriptDetail from "./pages/ScriptDetail";
 import Runs from "./pages/Runs";
 import Settings from "./pages/Settings";
+import Library from "./pages/Library";
 import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "./components/DashboardLayout";
 import { captureSessionTokenFromUrl } from "./lib/api";
@@ -34,6 +35,7 @@ const App = () => {
               <Route path="/scripts" element={<Scripts />} />
               <Route path="/scripts/:scriptId" element={<ScriptDetail />} />
               <Route path="/runs" element={<Runs />} />
+              <Route path="/library" element={<Library />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />

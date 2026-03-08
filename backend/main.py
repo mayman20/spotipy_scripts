@@ -21,9 +21,11 @@ from .tasks import (
     get_genre_playlist_recommendations,
     get_listening_pattern,
     get_mood_timeline,
+    get_playlist_freshness,
     get_recently_played,
     get_track_longevity,
     get_top_lists,
+    run_archive_stale_playlists,
     run_liked_add,
     run_vaulted_add,
     search_artists,
@@ -222,6 +224,11 @@ class RunRequest(BaseModel):
     target_playlist_name: str | None = None
 
 
+class ArchiveStaleRequest(BaseModel):
+    max_freshness_score: int = 30
+    prefix: str = "[Archive]"
+
+
 @app.post("/run/vaulted")
 def run_vaulted(
     body: RunRequest | None = None,
@@ -315,3 +322,26 @@ def stats_mood_timeline(
     sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
     data = get_mood_timeline(sp)
     return {"ok": True, "data": data}
+
+
+@app.get("/stats/playlist-freshness")
+def stats_playlist_freshness(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    data = get_playlist_freshness(sp)
+    return {"ok": True, "data": data}
+
+
+@app.post("/run/archive-stale")
+def run_archive_stale(
+    body: ArchiveStaleRequest | None = None,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> dict:
+    spotify_user_id = _current_user_id(authorization)
+    sp, _ = get_spotify_client_for_user(settings, spotify_user_id)
+    threshold = body.max_freshness_score if body else 30
+    prefix = body.prefix if body else "[Archive]"
+    result = run_archive_stale_playlists(sp, max_freshness_score=threshold, prefix=prefix)
+    return {"ok": True, "script": "archive_stale_playlists", "result": result}

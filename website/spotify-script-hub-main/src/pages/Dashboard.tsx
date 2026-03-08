@@ -133,6 +133,8 @@ type CatalogData = {
   total_tracks: number;
   saved_tracks_est: number;
   pct: number;
+  source?: "vaulted_playlist" | "liked_songs";
+  source_playlist_name?: string | null;
   albums: CatalogAlbum[];
 };
 
@@ -140,6 +142,8 @@ type GenreBreakdown = {
   genres: Array<{ genre: string; count: number; pct: number }>;
   total_artists: number;
   songs_scanned: number;
+  source?: "vaulted_playlist" | "liked_songs";
+  source_playlist_name?: string | null;
 };
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -327,7 +331,7 @@ export default function Dashboard() {
   const visibleTracks = showAllTracks
     ? (topStats?.top_tracks || []).slice(0, 25)
     : (topStats?.top_tracks || []).slice(0, 5);
-  const visibleLongevity = showAllLongevity ? longevityTracks.slice(0, 25) : longevityTracks.slice(0, 8);
+  const visibleLongevity = showAllLongevity ? longevityTracks.slice(0, 25) : longevityTracks.slice(0, 5);
   const visibleRecent = showAllRecent ? recentTracks.slice(0, 25) : recentTracks.slice(0, 5);
   const listeningDayTotals = listeningPattern
     ? listeningPattern.day_labels.map((day, idx) => ({
@@ -517,9 +521,9 @@ export default function Dashboard() {
                       <p className="text-sm font-medium truncate">{track.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{track.artists?.join(", ")}</p>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-xs font-semibold text-primary">{track.longevity_score}</p>
-                      <div className="flex items-center gap-1 mt-1 justify-end">
+                    <div className="flex flex-col sm:items-end gap-1 flex-shrink-0">
+                      <p className="text-sm font-semibold text-primary">{track.longevity_score}</p>
+                      <div className="flex items-center gap-1 flex-wrap">
                         {(["short_term", "medium_term", "long_term"] as const).map((r) => (
                           <span
                             key={`${track.id}-${r}`}
@@ -536,7 +540,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
-                {!loadingLongevity && longevityTracks.length > 8 ? (
+                {!loadingLongevity && longevityTracks.length > 5 ? (
                   <Button variant="outline" size="sm" onClick={() => setShowAllLongevity((v) => !v)}>
                     {showAllLongevity ? "Show Less" : "Show More (25)"}
                   </Button>
@@ -555,8 +559,13 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-base">Genre Breakdown</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  From your liked songs
+                  From your library source
                   {genreBreakdown ? ` · ${genreBreakdown.songs_scanned.toLocaleString()} songs scanned` : ""}
+                  {genreBreakdown?.source === "vaulted_playlist"
+                    ? ` · Source: ${genreBreakdown.source_playlist_name || "Vaulted playlist"}`
+                    : genreBreakdown?.source === "liked_songs"
+                      ? " · Source: Liked songs"
+                      : ""}
                 </p>
               </CardHeader>
               <CardContent>
@@ -602,7 +611,7 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-base">Listening Pattern Explorer</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Heatmap by day/hour ({listeningPattern?.timezone || "UTC"}).
+                  Heatmap of play events by weekday/hour ({listeningPattern?.timezone || "UTC"}).
                 </p>
               </CardHeader>
               <CardContent>
@@ -667,7 +676,7 @@ export default function Dashboard() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Source: {listeningPattern.source === "recently_played" ? "Recently played" : "Liked track add-times"} ·
-                      Total events analyzed: {listeningPattern.total_events}. Darker green means more plays in that slot.
+                      Total events analyzed: {listeningPattern.total_events}. Each cell = number of plays in that day/hour slot.
                     </p>
                   </>
                 ) : (
@@ -752,6 +761,11 @@ export default function Dashboard() {
                     <div className="text-sm text-muted-foreground space-y-0.5">
                       <p>{catalogData.saved_albums} / {catalogData.total_albums} albums</p>
                       <p>~{catalogData.saved_tracks_est.toLocaleString()} / {catalogData.total_tracks.toLocaleString()} tracks</p>
+                      <p>
+                        Source: {catalogData.source === "vaulted_playlist"
+                          ? catalogData.source_playlist_name || "Vaulted playlist"
+                          : "Liked songs"}
+                      </p>
                     </div>
                   </div>
                   <Progress value={catalogData.pct} className="h-2" />

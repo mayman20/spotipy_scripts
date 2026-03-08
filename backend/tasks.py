@@ -69,6 +69,21 @@ def _find_playlist_by_tag(playlists: list[dict], user_id: str, tag: str) -> dict
     return None
 
 
+def _has_vaulted_marker(description: str) -> bool:
+    desc = (description or "").lower()
+    return VAULTED_TAG.lower() in desc or "spotipy:vaulted" in desc
+
+
+def _find_vaulted_playlist(playlists: list[dict], user_id: str) -> dict | None:
+    for playlist in playlists:
+        if (playlist.get("owner") or {}).get("id") != user_id:
+            continue
+        description = playlist.get("description") or ""
+        if _has_vaulted_marker(description):
+            return playlist
+    return _find_owned_playlist_by_name(playlists, user_id, "_vaulted")
+
+
 def _is_excluded_playlist(playlist: dict) -> bool:
     description = (playlist.get("description") or "")
     return EXCLUDE_DESCRIPTION_FLAG in description
@@ -143,9 +158,7 @@ def _library_track_source(sp: spotipy.Spotify, user_id: str) -> dict:
         return cached
 
     playlists = _all_user_playlists(sp)
-    vaulted = _find_playlist_by_tag(playlists, user_id, VAULTED_TAG)
-    if not vaulted:
-        vaulted = _find_owned_playlist_by_name(playlists, user_id, "_vaulted")
+    vaulted = _find_vaulted_playlist(playlists, user_id)
 
     if vaulted:
         track_ids = _playlist_track_ids(sp, vaulted["id"])
@@ -164,6 +177,32 @@ def _library_track_source(sp: spotipy.Spotify, user_id: str) -> dict:
         "track_ids": _liked_track_ids(sp),
     }
     return _cache_set(cache_key, payload, ttl=180)
+
+
+def _playlist_last_added_at(sp: spotipy.Spotify, playlist_id: str, max_scan: int = 300) -> datetime | None:
+    latest: datetime | None = None
+    scanned = 0
+    results = _backoff(sp.playlist_tracks, playlist_id, fields="items(added_at),next", limit=100)
+    while results and scanned < max_scan:
+        for item in (results.get("items") or []):
+            dt = _parse_spotify_date((item or {}).get("added_at") or "")
+            if not dt:
+                continue
+            scanned += 1
+            if not latest or dt > latest:
+                latest = dt
+            if scanned >= max_scan:
+                break
+        if scanned >= max_scan or not results.get("next"):
+            break
+        results = _backoff(sp.next, results)
+    return latest
+
+
+def _freshness_score_from_days(days_since_activity: int) -> int:
+    # 100 = very fresh, 0 = stale. Linear decay over one year.
+    clamped = max(0, min(days_since_activity, 365))
+    return int(round(100 - (clamped / 365) * 100))
 
 
 def _parse_spotify_date(s: str) -> datetime | None:
@@ -470,8 +509,17 @@ def get_listening_pattern(sp: spotipy.Spotify) -> dict:
     source = "recently_played"
     note = None
     try:
+        # Pull multiple pages so the heatmap is less noisy than a single 50-item window.
         results = _backoff(sp.current_user_recently_played, limit=50)
-        items = (results or {}).get("items") or []
+        pages = 0
+        max_pages = 4  # up to ~200 events
+        while results and pages < max_pages:
+            items.extend((results or {}).get("items") or [])
+            next_url = (results or {}).get("next")
+            if not next_url:
+                break
+            results = _backoff(sp.next, results)
+            pages += 1
     except SpotifyException as exc:
         # Fallback when scope is missing or endpoint unavailable.
         if exc.http_status in (401, 403):
@@ -780,6 +828,106 @@ def get_mood_timeline(sp: spotipy.Spotify) -> dict:
         "error": None,
     }
     return _cache_set(cache_key, payload, ttl=300)
+
+
+def get_playlist_freshness(sp: spotipy.Spotify) -> dict:
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    cache_key = f"playlist_freshness:{user_id}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return cached
+
+    now = datetime.now(timezone.utc)
+    playlists = _all_user_playlists(sp)
+    owned = [p for p in playlists if (p.get("owner") or {}).get("id") == user_id]
+    rows = []
+    for p in owned:
+        pid = p.get("id")
+        if not pid:
+            continue
+        if _is_excluded_playlist(p):
+            continue
+        name = p.get("name") or ""
+        description = p.get("description") or ""
+        track_total = int(((p.get("tracks") or {}).get("total") or 0))
+        last_added = _playlist_last_added_at(sp, pid, max_scan=300)
+        if last_added:
+            days_since = max(0, (now - last_added).days)
+            freshness_score = _freshness_score_from_days(days_since)
+            last_added_iso = last_added.isoformat()
+        else:
+            days_since = 999
+            freshness_score = 0
+            last_added_iso = None
+
+        rows.append(
+            {
+                "id": pid,
+                "name": name,
+                "description": description,
+                "track_count": track_total,
+                "last_added_at": last_added_iso,
+                "days_since_activity": days_since,
+                "freshness_score": freshness_score,
+                "spotify_url": f"https://open.spotify.com/playlist/{pid}",
+                "is_vaulted_tagged": _has_vaulted_marker(description),
+                "is_liked_tagged": LIKED_TAG.lower() in description.lower(),
+            }
+        )
+
+    rows.sort(key=lambda r: (r["freshness_score"], r["days_since_activity"], r["name"]))
+    payload = {
+        "playlists": rows,
+        "scoring": {
+            "method": "linear_decay_365d",
+            "description": "Score 100 for very recent activity, decays to 0 by 365 days.",
+        },
+    }
+    return _cache_set(cache_key, payload, ttl=180)
+
+
+def run_archive_stale_playlists(
+    sp: spotipy.Spotify,
+    max_freshness_score: int = 30,
+    prefix: str = "[Archive]",
+) -> dict:
+    me = _backoff(sp.me)
+    user_id = me["id"]
+    freshness = get_playlist_freshness(sp)
+    candidates = freshness.get("playlists") or []
+    threshold = max(0, min(int(max_freshness_score), 100))
+    archive_prefix = (prefix or "[Archive]").strip()
+    archived: list[dict] = []
+
+    for pl in candidates:
+        if pl.get("freshness_score", 101) > threshold:
+            continue
+        name = (pl.get("name") or "").strip()
+        if not name or name.startswith(archive_prefix):
+            continue
+        pid = pl.get("id")
+        if not pid:
+            continue
+        new_name = f"{archive_prefix} {name}".strip()
+        _backoff(sp.playlist_change_details, playlist_id=pid, name=new_name)
+        archived.append(
+            {
+                "id": pid,
+                "old_name": name,
+                "new_name": new_name,
+                "freshness_score": pl.get("freshness_score"),
+            }
+        )
+
+    # Clear freshness cache so UI reflects archive names quickly.
+    _CACHE.pop(f"playlist_freshness:{user_id}", None)
+    return {
+        "threshold": threshold,
+        "prefix": archive_prefix,
+        "archived_count": len(archived),
+        "archived": archived,
+    }
 
 
 def run_vaulted_add(
