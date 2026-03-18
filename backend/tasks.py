@@ -851,6 +851,8 @@ def get_playlist_freshness(sp: spotipy.Spotify) -> dict:
         name = p.get("name") or ""
         description = p.get("description") or ""
         track_total = int(((p.get("tracks") or {}).get("total") or 0))
+        images = p.get("images") or []
+        image_url = ((images[0] or {}).get("url")) if images else None
         last_added = _playlist_last_added_at(sp, pid, max_scan=300)
         if last_added:
             days_since = max(0, (now - last_added).days)
@@ -870,6 +872,7 @@ def get_playlist_freshness(sp: spotipy.Spotify) -> dict:
                 "last_added_at": last_added_iso,
                 "days_since_activity": days_since,
                 "freshness_score": freshness_score,
+                "image_url": image_url,
                 "spotify_url": f"https://open.spotify.com/playlist/{pid}",
                 "is_vaulted_tagged": _has_vaulted_marker(description),
                 "is_liked_tagged": LIKED_TAG.lower() in description.lower(),

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { ExternalLink, Music2, RefreshCw } from "lucide-react";
 import { fetchPlaylistFreshness, runArchiveStale } from "@/lib/api";
 import { toast } from "@/components/ui/use-toast";
 
@@ -14,6 +14,7 @@ type FreshPlaylist = {
   last_added_at: string | null;
   days_since_activity: number;
   freshness_score: number;
+  image_url: string | null;
   spotify_url: string;
   is_vaulted_tagged: boolean;
   is_liked_tagged: boolean;
@@ -27,6 +28,22 @@ function freshnessStyle(score: number) {
     backgroundColor: `rgba(${red}, ${green}, 90, 0.18)`,
     borderColor: `rgba(${red}, ${green}, 90, 0.45)`,
   };
+}
+
+function freshnessLabel(daysSinceActivity: number) {
+  if (daysSinceActivity > 900) return "Last activity unknown";
+  if (daysSinceActivity === 0) return "Active today";
+  if (daysSinceActivity === 1) return "Active 1 day ago";
+  return `Active ${daysSinceActivity} days ago`;
+}
+
+function updatedLabel(lastAddedAt: string | null) {
+  if (!lastAddedAt) return "No recent add date";
+  return `Updated ${new Date(lastAddedAt).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })}`;
 }
 
 export default function Library() {
@@ -123,41 +140,103 @@ export default function Library() {
         <CardHeader>
           <CardTitle className="text-base">Playlists</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           {loading ? <p className="text-sm text-muted-foreground">Loading playlists...</p> : null}
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {!loading && !error && playlists.length === 0 ? (
             <p className="text-sm text-muted-foreground">No playlists found.</p>
           ) : null}
-          {!loading && !error && playlists.map((pl) => (
-            <div key={pl.id} className="rounded-md border p-3" style={freshnessStyle(pl.freshness_score)}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{pl.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {pl.track_count} tracks · Last active {pl.days_since_activity > 900 ? "unknown" : `${pl.days_since_activity}d ago`}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Score: <span className="font-semibold text-foreground">{pl.freshness_score}</span>
-                    {pl.is_vaulted_tagged ? " · Vaulted" : ""}
-                    {pl.is_liked_tagged ? " · Liked Mirror" : ""}
-                  </p>
-                </div>
+          {!loading && !error ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {playlists.map((pl) => (
                 <a
+                  key={pl.id}
                   href={pl.spotify_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-primary inline-flex items-center gap-1 whitespace-nowrap"
+                  className="group overflow-hidden rounded-xl border transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                  style={freshnessStyle(pl.freshness_score)}
                 >
-                  Open
-                  <ExternalLink className="h-3 w-3" />
+                  <div className="relative aspect-square overflow-hidden border-b border-white/10 bg-gradient-to-br from-emerald-500/20 via-zinc-950 to-zinc-900">
+                    {pl.image_url ? (
+                      <img
+                        src={pl.image_url}
+                        alt={pl.name}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-black/20 backdrop-blur-sm">
+                          <Music2 className="h-10 w-10 text-zinc-200" />
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-semibold text-white">{pl.name}</p>
+                          <p className="mt-1 text-xs text-zinc-300">{pl.track_count} tracks</p>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white">
+                          {pl.freshness_score}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {pl.is_vaulted_tagged ? (
+                        <span className="rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-medium text-primary">
+                          Vaulted
+                        </span>
+                      ) : null}
+                      {pl.is_liked_tagged ? (
+                        <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-[11px] font-medium text-sky-300">
+                          Liked Mirror
+                        </span>
+                      ) : null}
+                      {!pl.is_vaulted_tagged && !pl.is_liked_tagged ? (
+                        <span className="rounded-full bg-white/6 px-2.5 py-1 text-[11px] font-medium text-zinc-300">
+                          Standard playlist
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-lg bg-black/15 p-2.5">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Freshness</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{pl.freshness_score}/100</p>
+                      </div>
+                      <div className="rounded-lg bg-black/15 p-2.5">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Activity</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">
+                          {pl.days_since_activity > 900 ? "Unknown" : `${pl.days_since_activity}d`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">{freshnessLabel(pl.days_since_activity)}</p>
+                      <p className="text-xs text-muted-foreground">{updatedLabel(pl.last_added_at)}</p>
+                      {pl.description ? (
+                        <p className="line-clamp-2 text-xs text-zinc-300/90">{pl.description}</p>
+                      ) : (
+                        <p className="text-xs text-zinc-400">No playlist description.</p>
+                      )}
+                    </div>
+
+                    <div className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                      Open in Spotify
+                      <ExternalLink className="h-3 w-3" />
+                    </div>
+                  </div>
                 </a>
-              </div>
+              ))}
             </div>
-          ))}
+          ) : null}
         </CardContent>
       </Card>
     </div>
   );
 }
-
