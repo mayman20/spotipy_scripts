@@ -395,6 +395,7 @@ export async function fetchPlaylistFreshness(): Promise<{
       last_added_at: string | null;
       days_since_activity: number;
       freshness_score: number;
+      image_url: string | null;
       spotify_url: string;
       is_vaulted_tagged: boolean;
       is_liked_tagged: boolean;
