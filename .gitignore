@@ -16,3 +16,11 @@ mkcert.exe
 _backup_*/
 scripts/monthly_recommend/monthly_recommend_assets/.cache*
 scripts/monthly_recommend/monthly_recommend_assets/.ipynb_checkpoints/
+
+# OS / editor artifacts
+.DS_Store
+*.log
+
+# Browser/scraper auth state
+.chromium_profile/
+.chrome_profile/

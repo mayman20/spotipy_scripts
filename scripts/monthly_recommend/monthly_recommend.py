@@ -127,6 +127,7 @@ def chunked(lst: list, size: int):
 # ── auth ──────────────────────────────────────────────────────────────────────
 
 def get_client() -> spotipy.Spotify:
+    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
     return spotipy.Spotify(
         auth_manager=SpotifyOAuth(
             scope=(
