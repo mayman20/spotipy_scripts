@@ -1,97 +1,125 @@
-# Spotipy Scripts Workspace
+# spotipy_scripts
 
-This repository is organized as a Spotify-only project.
+Spotify automation workspace for playlist management, listening-history workflows, and browser-based script execution.
 
-## Layout
+## What This Project Shows
 
-- `website/` extracted website project
-- `scripts/`
-- `scripts/vaulted_add/` vaulted playlist sync script + data/output/cache/logs
-- `scripts/liked_add/` liked songs mirror script + data/output/cache/logs
-- `scripts/monthly_recommend/` monthly recommendation script and assets
-- `scripts/auth_tools/get-spotify-refresh-token-main/` Spotify auth helper
-- `.cache/` root OAuth cache files
-- `.env` Spotify credentials file
-- `_backup_YYYYMMDD_HHMM/` moved legacy/non-Spotify items and incoming zips
+- API integrations with Spotify through Spotipy
+- Backend and frontend coordination for authenticated user workflows
+- Automation tooling that moved from local scripts toward a web product
+- Deployment patterns using a static frontend plus hosted API backend
 
-## Run
+## Main Capabilities
 
-From project root:
+- Mirror liked songs into target playlists
+- Run vaulted playlist sync workflows
+- Manage Spotify auth and token handling
+- Trigger automation from a web interface instead of only local scripts
+- Support analytics-style views such as dashboard summaries and listening insights
 
-- `./vaulted.bat`
-- `./liked.bat`
+## Repo Layout
 
-PowerShell alternatives:
+```txt
+backend/                             FastAPI backend, auth, DB, task orchestration
+website/spotify-script-hub-main/     React and TypeScript frontend
+scripts/                             Local and legacy Spotify scripts
+scripts/vaulted_add/                 Vaulted playlist sync workflow
+scripts/liked_add/                   Liked songs mirror workflow
+scripts/monthly_recommend/           Recommendation tooling
+scripts/auth_tools/                  Spotify auth helpers
+.github/workflows/                   Pages deploy and script-run workflows
+```
 
-- `./vaulted.ps1`
-- `./liked.ps1`
+## Architecture
+
+1. User authenticates with Spotify.
+2. Backend stores encrypted Spotify tokens.
+3. Frontend calls backend endpoints to run or inspect workflows.
+4. Backend executes playlist tasks and returns run results to the UI.
+
+## Tech Stack
+
+- Backend: FastAPI, Uvicorn, Spotipy, PostgreSQL, `httpx`
+- Frontend: React, TypeScript, Vite
+- Auth and security: Spotify OAuth, encrypted token storage
+- Deployment: GitHub Pages for frontend, Render-style hosted backend
+
+## Run The Script Shortcuts
+
+From repo root:
+
+```powershell
+./vaulted.ps1
+./liked.ps1
+```
+
+Batch equivalents:
+
+```powershell
+./vaulted.bat
+./liked.bat
+```
 
 ## Environment
 
-Create/update `.env` at project root with Spotipy credentials:
+Create `.env` at the project root with:
+
+```bash
+SPOTIPY_CLIENT_ID=...
+SPOTIPY_CLIENT_SECRET=...
+SPOTIPY_REDIRECT_URI=...
+```
+
+For the backend you also need:
+
+```bash
+DATABASE_URL=...
+APP_SECRET_KEY=...
+FRONTEND_URL=...
+```
+
+## Local Development
+
+### Backend
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Important backend env vars:
 
 - `SPOTIPY_CLIENT_ID`
 - `SPOTIPY_CLIENT_SECRET`
 - `SPOTIPY_REDIRECT_URI`
-
-## Website
-
-The extracted website project is in `website/`.
-
-## Vaulted Add Config Notes
-
-- `Minimum Plays` was removed from the web form because it was not connected to active backend logic.
-- `Auto-remove from source` is currently a planned option in the UI:
-- Intended behavior: after a track is vaulted, remove it from source playlists.
-- Current status: not yet enforced by backend execution.
-
-## GitHub Pages + Web Trigger
-
-- GitHub Pages deploy workflow: `.github/workflows/deploy-pages.yml`
-- Script run workflow: `.github/workflows/run-spotify-script.yml`
-- Legacy workflow route is still available, but user-facing execution now runs through backend OAuth.
-- If you use the script-run GitHub Action, add repo secrets:
-- `SPOTIPY_CLIENT_ID`
-- `SPOTIPY_CLIENT_SECRET`
-- `SPOTIPY_REDIRECT_URI`
-
-## Backend (Render)
-
-- Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-- Health check: `/healthz`
-- Required env vars:
-- `SPOTIPY_CLIENT_ID`
-- `SPOTIPY_CLIENT_SECRET`
-- `SPOTIPY_REDIRECT_URI` (Render callback URL)
 - `DATABASE_URL`
 - `APP_SECRET_KEY`
-- `FRONTEND_URL` (GitHub Pages URL)
-- Spotify tokens stored in DB are encrypted at rest using a key derived from `APP_SECRET_KEY`.
+- `FRONTEND_URL`
 
-Frontend build env:
+### Frontend
 
-- `VITE_API_BASE_URL=https://<your-render-service>.onrender.com`
+From `website/spotify-script-hub-main`:
 
-## Local Rapid Dev
+```bash
+npm install
+npm run dev
+```
 
-Use this loop to iterate quickly without GitHub Pages deploys:
+Create `.env.local` with:
 
-1. Backend (local):
-- From repo root:
-- `python -m venv .venv`
-- `.venv\\Scripts\\activate`
-- `pip install -r requirements.txt`
-- Set env vars in your shell (or `.env`) including:
-- `SPOTIPY_CLIENT_ID`, `SPOTIPY_CLIENT_SECRET`
-- `SPOTIPY_REDIRECT_URI=http://127.0.0.1:8765/callback`
-- `DATABASE_URL`, `APP_SECRET_KEY`
-- `FRONTEND_URL=http://127.0.0.1:5173`
-- Run: `uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload`
+```bash
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
 
-2. Frontend (local):
-- `cd website/spotify-script-hub-main`
-- Create `.env.local` with:
-- `VITE_API_BASE_URL=http://127.0.0.1:8000`
-- `npm install`
-- `npm run dev`
-- Open the local URL shown by Vite (usually `http://127.0.0.1:5173`)
+## Deployment Notes
+
+- Frontend is suitable for GitHub Pages deployment.
+- Backend can run on Render or a similar Python host.
+- Tokens stored in the database are encrypted using a key derived from `APP_SECRET_KEY`.
+
+## Current Caveats
+
+- Some legacy script paths still exist alongside the newer web workflow.
+- `Auto-remove from source` is a planned feature in the vaulted flow UI and is not fully enforced by backend execution yet.
