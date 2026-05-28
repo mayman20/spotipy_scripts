@@ -28,3 +28,6 @@ scripts/monthly_recommend/monthly_recommend_assets/.ipynb_checkpoints/
 # Spotify OAuth token cache (never commit)
 .spotify_cache
 *.spotify_cache
+
+# conda env (use .venv instead)
+.conda/
